@@ -5,8 +5,67 @@ from __future__ import print_function, absolute_import, division
 import argparse
 import fitsio
 import numpy as np
+import json
 from matplotlib.backends.backend_agg import FigureCanvasAgg as Canvas
 from matplotlib.figure import Figure
+
+
+class AxisTransform(object):
+
+    def __init__(self, canvas, axis):
+        self.canvas = canvas
+        self.axis = axis
+
+    def transform(self, x, y):
+        x = np.atleast_1d(x)
+        y = np.atleast_1d(y)
+
+        points = np.array([x, y]).T
+        x, y = self.axis.transData.transform(points).T
+        _, height = self.canvas.get_width_height()
+        return {
+            'x': x.tolist(),
+            'y': (height - y).tolist(),
+        }
+
+    def transform_pixels(self, *args, **kwargs):
+        results = self.transform(*args, **kwargs)
+        x, y = results['x'], results['y']
+        return {
+            'x': np.round(x).astype(np.int32).tolist(),
+            'y': np.round(y).astype(np.int32).tolist(),
+        }
+
+
+class FigureTransform(object):
+
+    def __init__(self, figure):
+        self.figure = figure
+        assert self.canvas is not None, 'A canvas object must be set'
+        self.width, self.height = self.canvas.get_width_height()
+
+    def axis(self, index):
+        return AxisTransform(self.canvas, self.canvas.figure.axes[index])
+
+    def transform(self, *args, **kwargs):
+        if self.naxes > 1:
+            raise RuntimeError('Figure contains more than one axis. '
+                               'This is unsupported')
+        return self.axis(0).transform(*args, **kwargs)
+
+    def transform_pixels(self, *args, **kwargs):
+        if self.naxes > 1:
+            raise RuntimeError('Figure contains more than one axis. '
+                               'This is unsupported')
+        return self.axis(0).transform_pixels(*args, **kwargs)
+
+    @property
+    def naxes(self):
+        return len(self.figure.axes)
+
+    @property
+    def canvas(self):
+        return self.figure.canvas
 
 
 def find_file(root, file_type):
@@ -43,6 +102,44 @@ def mark_nights(axis, nights):
         if to_shade:
             axis.axvspan(left, right, color='0.8')
         to_shade = not to_shade
+
+
+def render_regionfile(figure, boundaries, prod_ids):
+    output_filename = 'wcsstats_regions.json'
+
+    trans = FigureTransform(figure)
+
+    results = trans.transform_pixels(
+        boundaries[0], np.ones(len(boundaries[0])) * 0.4)
+    xs = np.array(results['x'][:-1])
+    widths = np.diff(results['x'])
+
+    ind = widths >= 1
+    xs, widths = [data[ind] for data in [xs, widths]]
+
+    yrange_pix = trans.transform_pixels([0, 0], [0.1, 0.7])['y']
+    ys = np.ones_like(xs) * yrange_pix[0]
+    heights = np.ones_like(xs) * (yrange_pix[1] - yrange_pix[0])
+
+    with open(output_filename, 'w') as outfile:
+        json.dump({
+            'coords': {
+                'xmin': xs.tolist(),
+                'ymin': ys.tolist(),
+                'xmax': (xs + widths).tolist(),
+                'ymax': (ys + heights).tolist(),
+            },
+            'hrefs': [get_url('phot', prod_id) for prod_id in prod_ids],
+            'fig_size': {
+                'width': trans.width,
+                'height': trans.height,
+            },
+        }, outfile, indent=2)
+
+
+def get_url(job_type, prod_id):
+    # TODO
+    return ''
 
 
 if __name__ == '__main__':
@@ -84,6 +181,8 @@ if __name__ == '__main__':
         mark_nights(axis, night_boundaries)
         axis.set_xticks(night_boundaries[0][label_idx])
         axis.set_xticklabels(night_boundaries[1][label_idx], rotation=90)
+
+        render_regionfile(fig, night_boundaries, sub_prod_ids)
 
     axis.grid(True, axis='y')
     axis.set(xlim=(0, frames[-1]), ylim=(0.1, 0.7))
