@@ -1,0 +1,48 @@
+---
+- hosts: all
+  become: true
+  vars:
+      - dump_stub: ngts_pipe.sql.bz2
+  tasks:
+      - name: Install required packages
+        apt:
+            name: "{{ item }}"
+            update_cache: yes
+            cache_valid_time: 86400
+        with_items:
+            - mysql-server
+            - mysql-client
+            - apache2
+            - apache2-doc
+            - php5
+            - php5-mysql
+            - libapache2-mod-php5
+            - python-mysqldb
+
+      - name: Add the mysql user
+        mysql_user:
+            name: sw
+            host: localhost
+            state: present
+            password: password
+            priv: ngts_pipe.*:ALL
+
+      - name: Copy the database dump
+        copy:
+            src: "{{ dump_stub }}"
+            dest: /tmp
+
+      - name: Add the database
+        mysql_db:
+            name: ngts_pipe
+            state: import
+            target: /tmp/{{ dump_stub }}
+
+      - name: Ensure the host is known as ngtsdb
+        lineinfile:
+            name: /etc/hosts
+            regexp: '^127\.0\.0\.1'
+            line: '127.0.0.1 localhost ngtsdb'
+            owner: root
+            group: root
+            mode: 0644

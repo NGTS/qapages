@@ -2,3 +2,4 @@ testdata
 tags
 workdir/*
 !workdir/.gitkeep
+.vagrant
