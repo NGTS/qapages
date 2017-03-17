@@ -8,6 +8,12 @@ import numpy as np
 import json
 from matplotlib.backends.backend_agg import FigureCanvasAgg as Canvas
 from matplotlib.figure import Figure
+import sys
+import os
+sys.path.insert(0, os.path.join(
+    os.path.dirname(__file__),
+    '..'))
+from ngqa_common import *
 
 
 class AxisTransform(object):
@@ -68,14 +74,6 @@ class FigureTransform(object):
         return self.figure.canvas
 
 
-def find_file(root, file_type):
-    file_type = file_type.lower()
-    stub = {
-        'imagelist': '_IMAGELIST.fits',
-    }[file_type]
-    return root + stub
-
-
 def compute_night_boundaries(nights):
     indices, labels = [], []
     indices.append(0)
@@ -89,11 +87,6 @@ def compute_night_boundaries(nights):
             last_night = night
 
     return np.array(indices), np.array(labels)
-
-
-def update_manifest(filename, manifest_path):
-    with open(manifest_path, 'a') as outfile:
-        outfile.write('{}\n'.format(filename))
 
 
 def mark_nights(axis, nights):
@@ -142,11 +135,6 @@ def render_regionfile(figure, boundaries, prod_ids, manifest_path):
     update_manifest(output_filename, manifest_path)
 
 
-def get_url(job_type, prod_id):
-    # TODO
-    return ''
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--file-root', required=True)
@@ -176,26 +164,23 @@ if __name__ == '__main__':
         0, len(night_boundaries[0]) - 1, 10).astype(np.int32)
 
     # Render the image
-    fig = Figure()
-    canvas = Canvas(fig)
-
-    axis = fig.add_subplot(111)
-    axis.plot(frames, stdcrms, 'k,')
-    axis.set(xlabel='Frame', ylabel='STDCRMS ["]')
-
-    if len(np.unique(night)) > 1:
-        mark_nights(axis, night_boundaries)
-        axis.set_xticks(night_boundaries[0][label_idx])
-        axis.set_xticklabels(night_boundaries[1][label_idx], rotation=90)
-
-        render_regionfile(fig, night_boundaries, sub_prod_ids, args.manifest_path)
-
-    axis.grid(True, axis='y')
-    axis.set(xlim=(0, frames[-1]), ylim=(0.1, 0.7))
-    fig.tight_layout()
-
     output_filename = 'qa_astrometry_stats.png'
-    fig.savefig(output_filename)
+
+    with figure_context(output_filename) as fig:
+
+        axis = fig.add_subplot(111)
+        axis.plot(frames, stdcrms, 'k,')
+        axis.set(xlabel='Frame', ylabel='STDCRMS ["]')
+
+        if len(np.unique(night)) > 1:
+            mark_nights(axis, night_boundaries)
+            axis.set_xticks(night_boundaries[0][label_idx])
+            axis.set_xticklabels(night_boundaries[1][label_idx], rotation=90)
+
+            render_regionfile(fig, night_boundaries, sub_prod_ids, args.manifest_path)
+
+        axis.grid(True, axis='y')
+        axis.set(xlim=(0, frames[-1]), ylim=(0.1, 0.7))
 
     update_manifest(output_filename, args.manifest_path)
 
