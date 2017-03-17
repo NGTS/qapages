@@ -39,6 +39,8 @@ Vagrant.configure("2") do |config|
   # argument is a set of non-required options.
   # config.vm.synced_folder "../data", "/vagrant_data"
   config.vm.synced_folder ".", "/vagrant", disabled: true
+  config.vm.synced_folder "server", "/var/www/ngtsqa"
+  config.vm.synced_folder "static", "/var/www/static/ngtsqa"
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
