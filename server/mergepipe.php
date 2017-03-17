@@ -19,6 +19,8 @@ render_job_links($dbh, $prod_id, 'merge');
 
 show_file_locations($prod_id, $dbh);
 
+println("<script type=\"text/javascript\" src=\"/ngtsqa/js/dynamic_regions.js\"></script>");
+
 require_once "footer.html";
 
 $dbh->close();

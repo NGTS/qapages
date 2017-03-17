@@ -190,20 +190,26 @@ function render_job_links($dbh, $prod_id, $job_type) {
     println("</ul>");
 }
 
-function show_image($prod_id, $job_type, $filename) {
+function show_image($prod_id, $job_type, $filename, $elem_id = NULL) {
     switch ($job_type) {
         case 'sysrem':
-            echo "<img src=\"/ngtsqa/joboutput/SysremPipe/$prod_id/$filename\"></img>";
+            $url = "/ngtsqa/joboutput/SysremPipe/$prod_id/$filename";
             break;
         case 'merge':
-            echo "<img src=\"/ngtsqa/joboutput/MergePipe/$prod_id/$filename\"></img>";
+            $url = "/ngtsqa/joboutput/MergePipe/$prod_id/$filename";
             break;
         case 'phot':
-            echo "<img src=\"/ngtsqa/joboutput/PhotPipe/$prod_id/$filename\"></img>";
+            $url = "/ngtsqa/joboutput/PhotPipe/$prod_id/$filename";
             break;
         default:
             println("UNIMPLEMENTED SHOW IMAGE: $job_type");
             break;
+    }
+
+    if ($elem_id === NULL) {
+        println("<img src=\"$url\"></img>");
+    } else {
+        println("<img id=\"$elem_id\" src=\"$url\"></img>");
     }
 }
 
