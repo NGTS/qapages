@@ -7,11 +7,8 @@ import sys
 import glob
 import os
 import subprocess as sp
-
-
-def create_empty(filename):
-    with open(filename, 'w') as outfile:
-        pass
+sys.path.insert(0, os.path.dirname(__file__))
+from ngqa_common import *
 
 
 if __name__ == '__main__':
@@ -21,6 +18,9 @@ if __name__ == '__main__':
     parser.add_argument('-w', '--webserver-dir', required=True)
     args = parser.parse_args()
 
+    if not os.path.isdir(args.webserver_dir):
+        os.makedirs(args.webserver_dir)
+
     ROOT_DIR = os.path.realpath(os.path.dirname(__file__))
 
     create_empty(args.manifest_path)
@@ -29,7 +29,6 @@ if __name__ == '__main__':
         'plot_flux_vs_rms.py',
         ]
 
-    to_copy_files = []
     for script_name in jobs:
         script_path = os.path.join(ROOT_DIR, 'SysremPipe', script_name)
         if not os.path.isfile(script_path):
@@ -41,3 +40,5 @@ if __name__ == '__main__':
             '--manifest-path', args.manifest_path]
         print(cmd)
         sp.check_call(cmd)
+
+    copy_manifest_files(args.manifest_path, args.webserver_dir)

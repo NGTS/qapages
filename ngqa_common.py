@@ -1,13 +1,17 @@
 from contextlib import contextmanager
 import os
+import shutil
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as Canvas
 from matplotlib.figure import Figure
 import pymysql
 from pymysql.cursors import DictCursor
+import warnings
 
 __all__ = [
+    'copy_manifest_files',
+    'create_empty',
     'figure_context',
     'find_file',
     'find_existing_job_files',
@@ -16,6 +20,9 @@ __all__ = [
     'update_manifest',
 ]
 
+# Disable the annoying warnings
+warnings.simplefilter('ignore')
+
 # Customise the figures
 # plt.style.use('seaborn')
 mpl.rc('figure', figsize=(6, 5), dpi=100)
@@ -23,6 +30,23 @@ mpl.rc('axes', grid=True)
 mpl.rc('lines', markersize=3, markeredgewidth=0.0)
 mpl.rc('text', usetex=False)
 mpl.rc('font', family='sans-serif')
+
+
+def copy_manifest_files(manifest_path, webserver_dir):
+    with open(manifest_path) as infile:
+        filenames = (line.strip() for line in infile
+            if line.strip())
+        for filename in filenames:
+            if os.path.isfile(filename):
+                destination = os.path.join(webserver_dir, filename)
+                print('Copying {} to {}'.format(
+                    filename, destination))
+                shutil.copyfile(filename, destination)
+
+
+def create_empty(filename):
+    with open(filename, 'w') as outfile:
+        pass
 
 
 @contextmanager

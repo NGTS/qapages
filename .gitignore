@@ -3,3 +3,4 @@ tags
 workdir/*
 !workdir/.gitkeep
 .vagrant
+static

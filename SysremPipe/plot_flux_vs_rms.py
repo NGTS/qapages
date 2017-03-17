@@ -62,7 +62,9 @@ def render_single_sysrem(sysrem_cataloguename, pre_sysrem_cataloguename,
 
         axis.invert_xaxis()
 
-    update_manifest(manifest_path, output_filename)
+    update_manifest(
+        filename=output_filename,
+        manifest_path=manifest_path)
 
 
 def render_sysrem_improvement(sysrem_cataloguename,
@@ -96,7 +98,9 @@ def render_sysrem_improvement(sysrem_cataloguename,
             axis.set(xlabel='Approximate R magnitude [ZP={zero_point:.1f}]'.format(
                 zero_point=APPROXIMATE_ZERO_POINT))
 
-    update_manifest(manifest_path, output_filename)
+    update_manifest(
+        filename=output_filename,
+        manifest_path=manifest_path)
 
 
 if __name__ == '__main__':
@@ -114,6 +118,6 @@ if __name__ == '__main__':
     pre_sysrem_cataloguename = pre_sysrem_files['catalogue']
 
     render_single_sysrem(sysrem_cataloguename, pre_sysrem_cataloguename,
-                         args.manifest_path)
+                         manifest_path=args.manifest_path)
     render_sysrem_improvement(sysrem_cataloguename, pre_sysrem_cataloguename,
-                              args.manifest_path)
+                              manifest_path=args.manifest_path)
