@@ -104,8 +104,9 @@ def mark_nights(axis, nights):
         to_shade = not to_shade
 
 
-def render_regionfile(figure, boundaries, prod_ids):
-    output_filename = 'wcsstats_regions.json'
+def render_regionfile(figure, boundaries, prod_ids, manifest_path):
+    assert len(boundaries[0]) == len(prod_ids) == len(boundaries[1])
+    output_filename = 'qa_wcsstats_regions.json'
 
     trans = FigureTransform(figure)
 
@@ -121,20 +122,24 @@ def render_regionfile(figure, boundaries, prod_ids):
     ys = np.ones_like(xs) * yrange_pix[0]
     heights = np.ones_like(xs) * (yrange_pix[1] - yrange_pix[0])
 
+    renderable_data = {
+        'coords': {
+            'xmin': xs.tolist(),
+            'ymin': ys.tolist(),
+            'xmax': (xs + widths).tolist(),
+            'ymax': (ys + heights).tolist(),
+        },
+        'hrefs': [get_url('phot', prod_id) for prod_id in prod_ids],
+        'fig_size': {
+            'width': trans.width,
+            'height': trans.height,
+        },
+    }
+
     with open(output_filename, 'w') as outfile:
-        json.dump({
-            'coords': {
-                'xmin': xs.tolist(),
-                'ymin': ys.tolist(),
-                'xmax': (xs + widths).tolist(),
-                'ymax': (ys + heights).tolist(),
-            },
-            'hrefs': [get_url('phot', prod_id) for prod_id in prod_ids],
-            'fig_size': {
-                'width': trans.width,
-                'height': trans.height,
-            },
-        }, outfile, indent=2)
+        json.dump(renderable_data, outfile, indent=2)
+
+    update_manifest(output_filename, manifest_path)
 
 
 def get_url(job_type, prod_id):
@@ -164,6 +169,7 @@ if __name__ == '__main__':
 
     night_boundaries = compute_night_boundaries(night)
     actions = action_id[night_boundaries[0]]
+    sub_prod_ids = sub_prod_ids[night_boundaries[0]]
 
     # Only select some of the labels to print
     label_idx = np.linspace(
@@ -182,16 +188,14 @@ if __name__ == '__main__':
         axis.set_xticks(night_boundaries[0][label_idx])
         axis.set_xticklabels(night_boundaries[1][label_idx], rotation=90)
 
-        render_regionfile(fig, night_boundaries, sub_prod_ids)
+        render_regionfile(fig, night_boundaries, sub_prod_ids, args.manifest_path)
 
     axis.grid(True, axis='y')
     axis.set(xlim=(0, frames[-1]), ylim=(0.1, 0.7))
     fig.tight_layout()
 
-    output_filename = 'astrometry_stats.png'
+    output_filename = 'qa_astrometry_stats.png'
     fig.savefig(output_filename)
 
     update_manifest(output_filename, args.manifest_path)
-
-    # Render the coordinate locations
 
