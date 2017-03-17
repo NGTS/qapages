@@ -12,9 +12,12 @@ println("<h1>$prod_id</h1>");
 
 show_job_perf_stats($prod_id, $dbh);
 
+show_image($prod_id, 'sysrem', 'qa_post_sysrem_flux_vs_rms.png');
+show_image($prod_id, 'sysrem', 'qa_sysrem_improvement.png');
+
+render_job_links($dbh, $prod_id, 'sysrem');
+
 show_file_locations($prod_id, $dbh);
 
 require_once "footer.html";
-
-$dbh->close();
 ?>

@@ -12,6 +12,10 @@ println("<h1>$prod_id</h1>");
 
 show_job_perf_stats($prod_id, $dbh);
 
+show_image($prod_id, 'phot', 'qa_astrometry_stats.png');
+
+render_job_links($dbh, $prod_id, 'phot');
+
 show_file_locations($prod_id, $dbh);
 
 require_once "footer.html";
