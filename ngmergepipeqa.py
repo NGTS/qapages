@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     to_copy_files = []
     for script_name in jobs:
-        script_path = os.path.join(ROOT_DIR, 'PhotPipe', script_name)
+        script_path = os.path.join(ROOT_DIR, 'MergePipe', script_name)
         if not os.path.isfile(script_path):
             print('Cannot find script {}, skipping'.format(script_path),
                 file=sys.stderr)
