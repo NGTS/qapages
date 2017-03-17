@@ -3,6 +3,12 @@
   become: true
   vars:
       - dump_stub: ngts_pipe.sql.bz2
+      - db_user: www
+  handlers:
+      - name: restart apache
+        service:
+            name: apache2
+            state: restarted
   tasks:
       - name: Install required packages
         apt:
@@ -18,10 +24,11 @@
             - php5-mysql
             - libapache2-mod-php5
             - python-mysqldb
+            - multitail
 
       - name: Add the mysql user
         mysql_user:
-            name: sw
+            name: "{{ db_user }}"
             host: localhost
             state: present
             password: password
@@ -46,3 +53,20 @@
             owner: root
             group: root
             mode: 0644
+
+      - name: Remove the default apache config file
+        file:
+            name: "{{ item }}"
+            state: absent
+        with_items:
+            - /etc/apache2/sites-enabled/000-default.conf
+            - /etc/apache2/sites-available/000-default.conf
+        notify:
+            - restart apache
+
+      - name: Install the custom apache config
+        template:
+            src: 001-ngtsqa.conf
+            dest: /etc/apache2/sites-enabled/001-ngtsqa.conf
+            owner: root
+            group: root
