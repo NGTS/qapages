@@ -23,7 +23,7 @@ list($previous_ids, $next_ids, $previous_stub, $next_stub) = render_job_links($d
 
 <div class="row">
     <div class="col-md-6">
-        <?php show_image($prod_id, 'merge', 'qa_astrometry_stats.png'); ?>
+        <?php show_image_with_regions($prod_id, 'merge', 'qa_astrometry_stats.png', 'qa_wcsstats_regions.json'); ?>
     </div>
 </div>
 

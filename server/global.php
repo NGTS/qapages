@@ -180,27 +180,41 @@ function render_job_links($dbh, $prod_id, $job_type) {
     return array($previous_prod_ids, $next_prod_ids, $previous_url_stub, $next_url_stub);
 }
 
-function show_image($prod_id, $job_type, $filename, $elem_id = NULL) {
+function static_path($prod_id, $job_type, $filename) {
     switch ($job_type) {
         case 'sysrem':
-            $url = "/ngtsqa/joboutput/SysremPipe/$prod_id/$filename";
+            return "/ngtsqa/joboutput/SysremPipe/$prod_id/$filename";
             break;
         case 'merge':
-            $url = "/ngtsqa/joboutput/MergePipe/$prod_id/$filename";
+            return "/ngtsqa/joboutput/MergePipe/$prod_id/$filename";
             break;
         case 'phot':
-            $url = "/ngtsqa/joboutput/PhotPipe/$prod_id/$filename";
+            return "/ngtsqa/joboutput/PhotPipe/$prod_id/$filename";
             break;
         default:
             println("UNIMPLEMENTED SHOW IMAGE: $job_type");
+            return NULL;
             break;
     }
+}
 
-    if ($elem_id === NULL) {
-        println("<img class=\"qaplot\" src=\"$url\"></img>");
-    } else {
-        println("<img class=\"qaplot\" id=\"$elem_id\" src=\"$url\"></img>");
-    }
+function show_image($prod_id, $job_type, $filename) {
+    $url = static_path($prod_id, $job_type, $filename);
+
+    println("<img class=\"qaplot\" src=\"$url\"></img>");
+}
+
+function current_timestamp() {
+    return date_timestamp_get(date_create());
+}
+
+function show_image_with_regions($prod_id, $job_type, $filename, $region_filename) {
+    $url = static_path($prod_id, $job_type, $filename);
+
+    /* Add the current timestamp to prevent caching */
+    $region_url = static_path($prod_id, $job_type, $region_filename) . "?_t=" . current_timestamp();
+
+    println("<img class=\"qaplot region-plot\" data-region-definition=\"$region_url\" src=\"$url\"></img>");
 }
 
 ?>
