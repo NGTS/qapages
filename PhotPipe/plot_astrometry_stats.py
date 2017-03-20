@@ -119,18 +119,18 @@ def render_regionfile(figure, boundaries, prod_ids, manifest_path):
         get_url('phot', prod_id) for prod_id in prod_ids
     ])[ind].tolist()
 
-    renderable_data = {
-        'coords': {
-            'xmin': xs.tolist(),
-            'ymin': ys.tolist(),
-            'xmax': (xs + widths).tolist(),
-            'ymax': (ys + heights).tolist(),
-        },
-        'hrefs': hrefs,
-    }
+    out = []
+    for i in range(len(hrefs)):
+        out.append({
+            'xmin': int(xs[i]),
+            'xmax': int(xs[i] + widths[i]),
+            'ymin': int(ys[i]),
+            'ymax': int(ys[i] + heights[i]),
+            'href': hrefs[i],
+        })
 
     with open(output_filename, 'w') as outfile:
-        json.dump(renderable_data, outfile, indent=2)
+        json.dump(out, outfile, indent=2)
 
     update_manifest(output_filename, manifest_path)
 
