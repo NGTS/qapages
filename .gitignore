@@ -4,3 +4,4 @@ workdir/*
 !workdir/.gitkeep
 .vagrant
 static
+server/test.php

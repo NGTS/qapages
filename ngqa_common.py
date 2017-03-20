@@ -154,8 +154,13 @@ def get_url(job_type, prod_id):
     ''' Given a job type and product it, return the root url of the job
     QA result.
     '''
-    # TODO
-    return ''
+    endpoints = {
+        'phot': 'photpipe.php',
+    }
+
+    return '/ngtsqa/{endpoint}?prod_id={prod_id}'.format(
+        endpoint=endpoints[job_type.lower()],
+        prod_id=prod_id)
 
 
 def update_manifest(filename, manifest_path):
