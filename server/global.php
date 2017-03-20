@@ -9,6 +9,14 @@ function println($msg) {
     echo $msg . PHP_EOL;
 }
 
+function debug_to_console($data) {
+    $output = $data;
+    if (is_array($output)) {
+        $output = implode(',', $output);
+    }
+    echo "<script>console.log('PHP DEBUG: " . $output . "' );</script>";
+}
+
 function query($dbh, $query, $args) {
     $stmt = $dbh->prepare($query);
     $stmt->execute($args);
@@ -60,6 +68,9 @@ function fetch_previous_prod_ids($dbh, $prod_id, $job_type) {
             break;
         case "merge":
             return merge_previous_prod_ids($dbh, $prod_id);
+            break;
+        case "phot":
+            return phot_previous_prod_ids($dbh, $prod_id);
             break;
         default:
             println("UNIMPLEMENTED PREVIOUS JOB: $job_type");
@@ -134,6 +145,10 @@ function merge_next_prod_ids($dbh, $prod_id) {
         array_push($out, $row["prod_id"]);
     }
     return $out;
+}
+
+function phot_previous_prod_ids($dbh, $prod_id) {
+    return array();
 }
 
 function phot_next_prod_ids($dbh, $prod_id) {
