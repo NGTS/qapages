@@ -22,10 +22,12 @@ function add_clickable_handler(elem) {
             for (var i=0; i<data.length; i++) {
                 if ((scaledX >= data[i].xmin) && (scaledX < data[i].xmax)) {
                     if ((scaledY >= data[i].ymax) && (scaledY < data[i].ymin)) {
-                        window.location.replace(data[i].href);
+                        window.location = data[i].href;
                     }
                 }
             }
+
+            console.log('Could not find click region for location ' + scaledX + ', ' + scaledY);
         });
     });
 }
