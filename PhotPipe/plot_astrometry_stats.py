@@ -115,6 +115,10 @@ def render_regionfile(figure, boundaries, prod_ids, manifest_path):
     ys = np.ones_like(xs) * yrange_pix[0]
     heights = np.ones_like(xs) * (yrange_pix[1] - yrange_pix[0])
 
+    hrefs = np.array([
+        get_url('phot', prod_id) for prod_id in prod_ids
+    ])[ind].tolist()
+
     renderable_data = {
         'coords': {
             'xmin': xs.tolist(),
@@ -122,11 +126,7 @@ def render_regionfile(figure, boundaries, prod_ids, manifest_path):
             'xmax': (xs + widths).tolist(),
             'ymax': (ys + heights).tolist(),
         },
-        'hrefs': [get_url('phot', prod_id) for prod_id in prod_ids],
-        'fig_size': {
-            'width': trans.width,
-            'height': trans.height,
-        },
+        'hrefs': hrefs,
     }
 
     with open(output_filename, 'w') as outfile:
