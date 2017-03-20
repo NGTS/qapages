@@ -21,9 +21,9 @@ function show_file_locations($prod_id, $dbh) {
 
     println("<h3>File locations</h3>");
 
-    println("<dl class=\"dl-horizontal\">");
+    println("<dl class=\"pre-scrollable dl-horizontal\">");
     foreach ($stmt as $row) {
-        println("<dt>$row[sub_type]<dt><dd>$row[path]</dd>");
+        println("<dt>$row[sub_type]<dt><dd><pre><code class=\"bash\">$row[path]</code></pre></dd>");
     }
     println("</dl>");
 }
@@ -33,7 +33,7 @@ function show_job_perf_stats($prod_id, $dbh) {
     WHERE job_id = :prod_id";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
-    println("<h3>Job performance</h3>");
+    println("<h3>Job perf</h3>");
     println("<table class=\"table\"><thead><tr><th>Stage</th><th>Time taken</th></thead><tbody>");
     foreach ($stmt as $row) {
         println("<tr><td>$row[command]</td><td>$row[wallclock]</td></tr>");
@@ -150,11 +150,10 @@ function render_job_links($dbh, $prod_id, $job_type) {
     $previous_prod_ids = fetch_previous_prod_ids($dbh, $prod_id, $job_type);
     $next_prod_ids = fetch_next_prod_ids($dbh, $prod_id, $job_type);
 
-
     switch ($job_type) {
         case 'sysrem':
             $previous_url_stub = "/ngtsqa/mergepipe.php";
-            $next_url = "/ngtsqa/blspipe.php";
+            $next_url_stub = "/ngtsqa/blspipe.php";
             $previous_label = "Merge jobs";
             $next_label = "BLS jobs";
             break;
@@ -175,19 +174,7 @@ function render_job_links($dbh, $prod_id, $job_type) {
             break;
     }
 
-    println("<h3>Previous jobs</h3>");
-    println("<ul>");
-    foreach ($previous_prod_ids as $p) {
-        println("<li><a href=\"$previous_url_stub?prod_id=$p\">$p</a></li>");
-    }
-    println("</ul>");
-
-    println("<h3>Next jobs</h3>");
-    println("<ul>");
-    foreach ($next_prod_ids as $p) {
-        println("<li><a href=\"$next_url_stub?prod_id=$p\">$p</a></li>");
-    }
-    println("</ul>");
+    return array($previous_prod_ids, $next_prod_ids, $previous_url_stub, $next_url_stub);
 }
 
 function show_image($prod_id, $job_type, $filename, $elem_id = NULL) {
@@ -207,9 +194,9 @@ function show_image($prod_id, $job_type, $filename, $elem_id = NULL) {
     }
 
     if ($elem_id === NULL) {
-        println("<img src=\"$url\"></img>");
+        println("<img class=\"qaplot\" src=\"$url\"></img>");
     } else {
-        println("<img id=\"$elem_id\" src=\"$url\"></img>");
+        println("<img class=\"qaplot\" id=\"$elem_id\" src=\"$url\"></img>");
     }
 }
 
