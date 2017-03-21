@@ -26,7 +26,7 @@ list($previous_jobs, $next_jobs) = fetch_linked_jobs($dbh, $prod_id, 'phot');
     </div>
 </div>
 
-<?php require_once "fragments/job_stats.php" ?>
+<?php require_once "fragments/job_links.php" ?>
 
 <div class="row">
     <div class="col-lg-12">

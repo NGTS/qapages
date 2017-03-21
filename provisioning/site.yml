@@ -2,7 +2,8 @@
 - hosts: all
   become: true
   vars:
-      - dump_stub: ngts_pipe.sql.bz2
+      - pipe_dump_stub: ngts_pipe.sql.bz2
+      - ops_dump_stub: ngts_ops.sql.bz2
       - db_user: www
   handlers:
       - name: restart apache
@@ -84,18 +85,29 @@
             host: localhost
             state: present
             password: password
-            priv: ngts_pipe.*:ALL
+            priv: "*.*:ALL"
 
-      - name: Copy the database dump
+      - name: Copy the ngts_pipe database dump
         copy:
-            src: "{{ dump_stub }}"
+            src: "{{ pipe_dump_stub }}"
             dest: /tmp
 
-      - name: Add the database
+      - name: Copy the ngts_ops database dump
+        copy:
+            src: "{{ ops_dump_stub }}"
+            dest: /tmp
+
+      - name: Add the ngts_pipe database
         mysql_db:
             name: ngts_pipe
             state: import
-            target: /tmp/{{ dump_stub }}
+            target: /tmp/{{ pipe_dump_stub }}
+
+      - name: Add the ngts_ops database
+        mysql_db:
+            name: ngts_ops
+            state: import
+            target: /tmp/{{ ops_dump_stub }}
 
       - name: Ensure the host is known as ngtsdb
         lineinfile:

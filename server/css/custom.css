@@ -1,3 +1,13 @@
 img.qaplot {
     width: 100%;
 }
+
+/* Need to add space for the navbar */
+body {
+    padding-top: 70px;
+}
+
+.scrollable-table {
+    height: 400px;
+    overflow: auto;
+}

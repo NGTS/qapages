@@ -125,6 +125,7 @@ class PipelineJob {
     public $href;
     public $typ;
     public $tag = NULL;
+    public $field = NULL;
 
     function __construct($prod_id, $typ) {
         $this->prod_id = intval($prod_id);
@@ -176,15 +177,18 @@ class PipelineJob {
 
 function fetch_sysrem_previous_jobs($dbh, $prod_id) {
     $prev_jobs = array();
-    $query = "SELECT raw_prod_id
+    $query = "SELECT S.raw_prod_id, M.field, M.output_tag AS tag
         FROM sysrempipe_prod AS S
-        JOIN mergepipe_prod AS M ON M.prod_id = S.raw_prod_id
+        JOIN mergepipe_prod AS M
+            ON M.prod_id = S.raw_prod_id
         WHERE S.prod_id = :prod_id
         ORDER BY raw_prod_id ASC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
     foreach ($stmt as $row) {
         $job = new PipelineJob($row["raw_prod_id"], 'merge');
+        $job->field = $row["field"];
+        $job->tag = $row["tag"];
         array_push($prev_jobs, $job);
     }
     return $prev_jobs;
@@ -192,44 +196,60 @@ function fetch_sysrem_previous_jobs($dbh, $prod_id) {
 
 function fetch_sysrem_next_jobs($dbh, $prod_id) {
     $next_jobs = array();
-    $query = "SELECT prod_id
-        FROM blspipe_prod
-        WHERE phot_prod_id = :prod_id
-        ORDER BY prod_id ASC";
+    $query = "SELECT B.prod_id, B.output_tag AS tag, M.field
+        FROM blspipe_prod AS B
+        JOIN sysrempipe_prod AS S
+            ON (S.prod_id = B.phot_prod_id)
+        JOIN mergepipe_prod AS M
+            ON (M.prod_id = S.raw_prod_id)
+        WHERE B.phot_prod_id = :prod_id
+        ORDER BY B.prod_id ASC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
     foreach ($stmt as $row) {
         $job = new PipelineJob($row["prod_id"], 'bls');
+        $job->tag = $row["tag"];
+        $job->field = $row["field"];
         array_push($next_jobs, $job);
     }
     return $next_jobs;
 }
 
 function fetch_merge_previous_jobs($dbh, $prod_id) {
-    $query = "SELECT sub_prod_id
-    FROM mergepipe_sub_prod
-    WHERE prod_id = :prod_id
-    ORDER BY sub_prod_id ASC";
+    $query = "SELECT S.sub_prod_id, A.field, P.tag
+    FROM mergepipe_sub_prod AS S
+    JOIN photpipe_prod AS P
+        ON (S.sub_prod_id = P.prod_id)
+    JOIN ngts_ops.action_summary_log AS A
+        ON (P.action_id = A.action_id)
+    WHERE S.prod_id = :prod_id
+    ORDER BY S.sub_prod_id ASC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
     $out = array();
     foreach ($stmt as $row) {
         $job = new PipelineJob($row["sub_prod_id"], 'phot');
+        $job->field = $row["field"];
+        $job->tag = $row["tag"];
         array_push($out, $job);
     }
     return $out;
 }
 
 function fetch_merge_next_jobs($dbh, $prod_id) {
-    $query = "SELECT prod_id
-    FROM sysrempipe_prod
-    WHERE raw_prod_id = :prod_id
-    ORDER BY prod_id ASC";
+    $query = "SELECT S.prod_id, M.field, S.output_tag as tag
+    FROM sysrempipe_prod AS S
+    JOIN mergepipe_prod AS M
+        ON (S.raw_prod_id = M.prod_id)
+    WHERE S.raw_prod_id = :prod_id
+    ORDER BY S.prod_id ASC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
     $out = array();
     foreach ($stmt as $row) {
         $job = new PipelineJob($row["prod_id"], 'sysrem');
+        $job->tag = $row["tag"];
+        $job->field = $row["field"];
         array_push($out, $job);
     }
     return $out;
@@ -307,15 +327,19 @@ function fetch_phot_previous_jobs($dbh, $prod_id) {
 }
 
 function fetch_phot_next_jobs($dbh, $prod_id) {
-    $query = "SELECT prod_id
-    FROM mergepipe_sub_prod
-    WHERE sub_prod_id = :prod_id
-    ORDER BY prod_id ASC";
+    $query = "SELECT S.prod_id, M.field, M.output_tag AS tag
+    FROM mergepipe_sub_prod AS S
+    JOIN mergepipe_prod AS M
+        ON (S.prod_id = M.prod_id)
+    WHERE S.sub_prod_id = :prod_id
+    ORDER BY S.prod_id ASC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
     $out = array();
     foreach ($stmt as $row) {
         $job = new PipelineJob($row["prod_id"], 'merge');
+        $job->field = $row["field"];
+        $job->tag = $row["tag"];
         array_push($out, $job);
     }
     return $out;
