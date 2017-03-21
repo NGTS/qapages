@@ -39,6 +39,9 @@ function check_valid_prod_id($prod_id, $dbh, $job_type) {
         case 'sysrem':
             $query = "SELECT COUNT(*) FROM sysrempipe_prod WHERE prod_id = :prod_id";
             break;
+        case 'refcat':
+            $query = "SELECT COUNT(*) FROM refcatpipe_prod WHERE prod_id = :prod_id";
+            break;
         default:
             header('Location: /ngtsqa/404.html');
             exit;
@@ -54,7 +57,7 @@ function check_valid_prod_id($prod_id, $dbh, $job_type) {
     }
 }
 
-function show_file_locations($prod_id, $dbh) {
+function show_file_locations($prod_id, $dbh, $refcat = false) {
     $query = "SELECT type, sub_type, CONCAT_WS('/', directory, filename) AS path
     FROM prod_cat
     JOIN prod_dir USING (prod_id)
@@ -64,11 +67,22 @@ function show_file_locations($prod_id, $dbh) {
 
     println("<h3>File locations</h3>");
 
-    println("<dl class=\"pre-scrollable dl-horizontal\">");
-    foreach ($stmt as $row) {
-        println("<dt>$row[sub_type]<dt><dd><pre><code class=\"bash\">$row[path]</code></pre></dd>");
+    if ($refcat) {
+        /* Have to special case the refcatpipe output, as the file naming system
+         * is different */
+        println("<dl class=\"pre-scrollable dl-horizontal\">");
+        foreach ($stmt as $row) {
+            $row_type = "$row[type]$row[sub_type]";
+            println("<dt>$row_type<dt><dd><pre><code class=\"bash\">$row[path]</code></pre></dd>");
+        }
+        println("</dl>");
+    } else {
+        println("<dl class=\"pre-scrollable dl-horizontal\">");
+        foreach ($stmt as $row) {
+            println("<dt>$row[sub_type]<dt><dd><pre><code class=\"bash\">$row[path]</code></pre></dd>");
+        }
+        println("</dl>");
     }
-    println("</dl>");
 }
 
 function show_job_perf_stats($prod_id, $dbh) {
@@ -307,6 +321,21 @@ function fetch_phot_next_jobs($dbh, $prod_id) {
     return $out;
 }
 
+function fetch_refcat_next_jobs($dbh, $prod_id) {
+    $query = "SELECT prod_id
+        FROM photpipe_prod
+        WHERE ref_cat_prod_id = :prod_id
+        ORDER BY prod_id ASC";
+    $stmt = query($dbh, $query, array('prod_id' => $prod_id));
+
+    $out = array();
+    foreach ($stmt as $row) {
+        $job = new PipelineJob($row["prod_id"], 'phot');
+        array_push($out, $job);
+    }
+    return $out;
+}
+
 function fetch_linked_jobs($dbh, $prod_id, $job_type) {
     switch ($job_type) {
         case 'sysrem':
@@ -320,6 +349,10 @@ function fetch_linked_jobs($dbh, $prod_id, $job_type) {
         case 'phot':
             $prev_jobs = fetch_phot_previous_jobs($dbh, $prod_id);
             $next_jobs = fetch_phot_next_jobs($dbh, $prod_id);
+            break;
+        case 'refcat':
+            $prev_jobs = array();
+            $next_jobs = fetch_refcat_next_jobs($dbh, $prod_id);
             break;
         default:
             println("UNIMPLEMENTED JOB TYPE: $job_type");
