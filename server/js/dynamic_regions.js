@@ -1,4 +1,4 @@
-/* Function to add a click handler to images where regions have been defined. This 
+/* Function to add a click handler to images where regions have been defined. This
  * allows the image to be scaled, either by the browser zoom function, or when the page
  * is scaled through the use of bootstrap.
  */
@@ -21,13 +21,12 @@ function add_clickable_handler(elem) {
 
             for (var i=0; i<data.length; i++) {
                 if ((scaledX >= data[i].xmin) && (scaledX < data[i].xmax)) {
-                    if ((scaledY >= data[i].ymax) && (scaledY < data[i].ymin)) {
+                    if ((scaledY >= data[i].ymin) && (scaledY < data[i].ymax)) {
                         window.location = data[i].href;
+                        return;
                     }
                 }
             }
-
-            console.log('Could not find click region for location ' + scaledX + ', ' + scaledY);
         });
     });
 }

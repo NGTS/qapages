@@ -103,8 +103,9 @@ def render_regionfile(figure, boundaries, prod_ids, manifest_path):
 
     trans = FigureTransform(figure)
 
-    results = trans.transform_pixels(
-        boundaries[0], np.ones(len(boundaries[0])) * 0.4)
+    dummy = np.ones(len(boundaries[0])) * 0.4
+    results = trans.transform_pixels(boundaries[0], dummy)
+
     xs = np.array(results['x'][:-1])
     widths = np.diff(results['x'])
 
@@ -124,8 +125,8 @@ def render_regionfile(figure, boundaries, prod_ids, manifest_path):
         out.append({
             'xmin': int(xs[i]),
             'xmax': int(xs[i] + widths[i]),
-            'ymin': int(ys[i]),
-            'ymax': int(ys[i] + heights[i]),
+            'ymin': yrange_pix[1],
+            'ymax': yrange_pix[0],
             'href': hrefs[i],
         })
 
@@ -170,17 +171,22 @@ if __name__ == '__main__':
 
         axis = fig.add_subplot(111)
         axis.plot(frames, stdcrms, 'k,')
-        axis.set(xlabel='Frame', ylabel='STDCRMS ["]')
+        axis.set(
+            xlabel='Frame',
+            ylabel='STDCRMS ["]',
+            xlim=(0, frames[-1]),
+            ylim=(0.1, 0.7),
+        )
+        axis.grid(True, axis='y')
 
         if len(np.unique(night)) > 1:
             mark_nights(axis, night_boundaries)
             axis.set_xticks(night_boundaries[0][label_idx])
             axis.set_xticklabels(night_boundaries[1][label_idx], rotation=90)
 
+            # Make sure to finish rendering the figure before rendering these regions,
+            # including calling `tight_layout`
+            fig.tight_layout()
             render_regionfile(fig, night_boundaries, sub_prod_ids, args.manifest_path)
 
-        axis.grid(True, axis='y')
-        axis.set(xlim=(0, frames[-1]), ylim=(0.1, 0.7))
-
     update_manifest(output_filename, args.manifest_path)
-
