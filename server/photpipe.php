@@ -15,7 +15,7 @@ list($previous_jobs, $next_jobs) = fetch_linked_jobs($dbh, $prod_id, 'phot');
 ?>
 
 <div class="row">
-    <div class="col-xs-12">
+    <div class="col-md-6">
         <h2>PhotPipe <?php echo $prod_id ?></h2>
     </div>
 </div>

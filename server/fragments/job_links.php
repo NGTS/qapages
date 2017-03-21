@@ -1,5 +1,5 @@
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-6">
         <h3>Previous jobs</h3>
         <div class="scrollable-table-placeholder">
             <table class="table">
@@ -21,21 +21,14 @@
                         $tag = '-';
                     }
 
-                    println("
-                        <tr>
-                            <td><a href=\"$p->href\">$p->prod_id</a></td>
-                            <td>$p->typ</td>
-                            <td>$field</td>
-                            <td>$tag</td>
-                        </tr>
-                        ");
+                    present_job_table_row($p->prod_id, $p->typ, $field, $tag, $p->href);
                 }
                 ?>
             </table>
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-6">
         <h3>Next jobs</h3>
         <div class="scrollable-table-placeholder">
             <table class="table">
@@ -71,7 +64,7 @@
         </div>
     </div>
 
-    <div class="col-xs-2">
+    <div class="col-md-12">
         <?php show_job_perf_stats($prod_id, $dbh); ?>
     </div>
 </div>

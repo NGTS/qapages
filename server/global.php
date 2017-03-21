@@ -57,6 +57,75 @@ function check_valid_prod_id($prod_id, $dbh, $job_type) {
     }
 }
 
+function present_job_table_row($prod_id, $job_type, $field, $tag, $href = NULL) {
+    if ($href) {
+        println("
+        <tr>
+        <td><a href=\"$href\">$prod_id</a></td>
+        <td>$job_type</td>
+        <td>$field</td>
+        <td>$tag</td>
+        </tr>
+        ");
+    } else {
+        println("
+        <tr>
+        <td>$prod_id</td>
+        <td>$job_type</td>
+        <td>$field</td>
+        <td>$tag</td>
+        </tr>
+        ");
+    }
+}
+
+function render_job_info($dbh, $prod_id, $job_type) {
+    $tag = '-';
+    $field = '-';
+    $typ = '-';
+    $tag = '-';
+
+    switch ($job_type) {
+        case 'merge':
+            $typ = 'MergePipe';
+            $stmt = query($dbh, "SELECT field, output_tag as tag
+                    FROM mergepipe_prod WHERE prod_id = :prod_id",
+                array('prod_id' => $prod_id));
+            $results = $stmt->fetch(PDO::FETCH_ASSOC);
+            break;
+        case 'sysrem':
+            $typ = 'SysremPipe';
+            $stmt = query($dbh, "SELECT M.field, S.output_tag as tag
+                    FROM mergepipe_prod AS M
+                    JOIN sysrempipe_prod AS S
+                        ON (M.prod_id = S.raw_prod_id)
+                    WHERE S.prod_id = :prod_id",
+                array('prod_id' => $prod_id));
+            $results = $stmt->fetch(PDO::FETCH_ASSOC);
+            break;
+        default:
+            println("UNKNOWN JOB INFO TYPE: $job_type");
+            break;
+    }
+
+    $field = $results["field"];
+    $tag = $results["tag"];
+
+    println("<table class=\"table\">
+    <thead>
+        <tr>
+            <th>Product id</th>
+            <th>Job type</th>
+            <th>Field</th>
+            <th>Tag</th>
+        </tr>
+    </thead>
+    <tbody>");
+    present_job_table_row($prod_id, $typ, $field, $tag);
+    println("</tbody>
+    </table>");
+}
+
 function show_file_locations($prod_id, $dbh, $refcat = false) {
     $query = "SELECT type, sub_type, CONCAT_WS('/', directory, filename) AS path
     FROM prod_cat

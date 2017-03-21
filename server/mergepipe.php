@@ -14,8 +14,12 @@ list($previous_jobs, $next_jobs) = fetch_linked_jobs($dbh, $prod_id, 'merge');
 ?>
 
 <div class="row">
-    <div class="col-xs-12">
+    <div class="col-md-6">
         <h2>MergePipe <?php echo $prod_id ?></h2>
+    </div>
+
+    <div class="col-md-6">
+        <?php render_job_info($dbh, $prod_id, 'merge'); ?>
     </div>
 </div>
 
