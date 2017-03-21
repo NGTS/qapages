@@ -115,6 +115,7 @@ function fetch_job_info($dbh, $prod_id, $job_type) {
                 WHERE R.prod_id = :prod_id",
                 array('prod_id' => $prod_id));
             $results = $stmt->fetch(PDO::FETCH_ASSOC);
+            break;
         default:
             println("UNKNOWN JOB INFO TYPE: $job_type");
             break;
@@ -147,6 +148,7 @@ function render_job_info($dbh, $prod_id, $job_type) {
     println("</tbody>
     </table>");
 
+    return $job_info;
 }
 
 function show_file_locations($prod_id, $dbh, $refcat = false) {

@@ -11,7 +11,6 @@ $dbh = db_connect();
 check_valid_prod_id($prod_id, $dbh, 'refcat');
 
 list($previous_jobs, $next_jobs) = fetch_linked_jobs($dbh, $prod_id, 'refcat');
-$job_info = fetch_job_info($dbh, $prod_id, 'refcat');
 ?>
 
 <div class="row">
@@ -24,7 +23,9 @@ $job_info = fetch_job_info($dbh, $prod_id, 'refcat');
             /* TODO: remove the double call to the database here,
             /* as render_job_info calls fetch_job_info
             */
-            render_job_info($dbh, $prod_id, 'refcat');
+            $job_info = render_job_info($dbh, $prod_id, 'refcat');
+            $field = $job_info["field"];
+            $camera_id = $job_info["camera_id"];
         ?>
     </div>
 </div>
@@ -34,7 +35,16 @@ $job_info = fetch_job_info($dbh, $prod_id, 'refcat');
 
 <div class="row">
     <div class="col-md-6">
-        <?php show_image($prod_id, 'refcat', 'AG_REFERENCE_IMAGE_NG0522-2518_802_5006373_hists.png'); ?>
+        <?php show_image($prod_id, 'refcat', "AG_REFERENCE_IMAGE_${field}_${camera_id}_${prod_id}_hists.png"); ?>
+    </div>
+    <div class="col-md-6">
+        <?php show_image($prod_id, 'refcat', "AG_REFERENCE_IMAGE_${field}_${camera_id}_${prod_id}_radial.png"); ?>
+    </div>
+    <div class="col-md-6">
+        <?php show_image($prod_id, 'refcat', "AG_REFERENCE_IMAGE_${field}_${camera_id}_${prod_id}_spatial.png"); ?>
+    </div>
+    <div class="col-md-6">
+        <?php show_image($prod_id, 'refcat', "INPUT_CATALOGUE_${field}_${camera_id}_${prod_id}_quiver.png"); ?>
     </div>
 </div>
 
