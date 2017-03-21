@@ -22,13 +22,18 @@ list($previous_ids, $next_ids, $previous_stub, $next_stub) = render_job_links($d
     </div>
 </div>
 
-<?php show_image($prod_id, 'phot', 'qa_astrometry_stats.png'); ?>
+<div class="row">
+    <div class="col-md-6">
+        <?php show_image($prod_id, 'phot', 'qa_astrometry_stats.png'); ?>
+    </div>
+</div>
 
 <?php require_once "fragments/job_stats.php"; ?>
 
-<?php
+<div class="row">
+    <div class="col-lg-12">
+        <?php show_file_locations($prod_id, $dbh); ?>
+    </div>
+</div>
 
-show_file_locations($prod_id, $dbh);
-
-require_once "footer.html";
-?>
+<?php require_once "footer.html"; ?>

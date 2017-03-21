@@ -30,14 +30,11 @@ list($previous_ids, $next_ids, $previous_stub, $next_stub) = render_job_links($d
 <?php require_once "fragments/job_stats.php"; ?>
 
 <div class="row">
-<div class="col-lg-12">
-<?php show_file_locations($prod_id, $dbh); ?>
-</div>
+    <div class="col-lg-12">
+        <?php show_file_locations($prod_id, $dbh); ?>
+    </div>
 </div>
 
 <script type="text/javascript" src="/ngtsqa/js/dynamic_regions.js"></script>
 
-<?php
-
-require_once "footer.html";
-?>
+<?php require_once "footer.html"; ?>
