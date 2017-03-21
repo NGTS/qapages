@@ -6,3 +6,4 @@ workdir/*
 static
 server/test.php
 provisioning/site.retry
+files.tar.gz
