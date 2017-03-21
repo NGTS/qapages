@@ -4,6 +4,18 @@ else
 	DATADIR := /Volumes/External
 endif
 
+test-refcatpipe:
+	@(cd workdir && rm -f *)
+	@(cd workdir && ln -s $(DATADIR)/NGTS/prodstore/RefCatPipe_P.5006373_F.NG0522-2518_C.802_A.110294_T.TEST15/* .)
+	(cd workdir && python $(PWD)/ngrefcatpipeqa.py \
+		-w $(PWD)/static/RefCatPipe/5006373 \
+		-m QA_MANIFEST)
+	@echo
+	@-ls workdir/*.png
+	@echo "\nMANIFEST:\n"
+	@cat workdir/QA_MANIFEST
+
+
 test-photpipe:
 	@(cd workdir && rm -f *)
 	@(cd workdir && ln -s $(DATADIR)/NGTS/prodstore/PhotPipe_P.5006804_F.NG0522-2518_C.802_N.20160218_A.117873_S.2016_T.TEST16/*.fits .)
@@ -36,5 +48,5 @@ test-sysrempipe:
 	@echo "\nMANIFEST:\n"
 	@cat workdir/QA_MANIFEST
 
-test-all: test-photpipe test-mergepipe test-sysrempipe
+test-all: test-photpipe test-mergepipe test-sysrempipe test-refcatpipe
 	@tree $(PWD)/static
