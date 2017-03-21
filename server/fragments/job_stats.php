@@ -3,8 +3,9 @@
         <h3>Previous jobs</h3>
         <ul class="pre-scrollable">
             <?php
-            foreach ($previous_ids as $p) {
-                println("<li><a href=\"$previous_stub?prod_id=$p\">$p</a></li>");
+            foreach ($previous_jobs as $p) {
+                $pretty_job = htmlspecialchars("$p->typ $p->prod_id");
+                println("<li><a href=\"$p->href\">$pretty_job</a></li>"); // $p->prod_id</a></li>");
             }
             ?>
         </ul>
@@ -14,8 +15,9 @@
         <h3>Next jobs</h3>
         <ul class="pre-scrollable">
             <?php
-            foreach ($next_ids as $p) {
-                println("<li><a href=\"$next_stub?prod_id=$p\">$p</a></li>");
+            foreach ($next_jobs as $p) {
+                $pretty_job = htmlspecialchars("$p->typ $p->prod_id");
+                println("<li><a href=\"$p->href\">$pretty_job</a></li>"); // $p->prod_id</a></li>");
             }
             ?>
         </ul>
@@ -25,4 +27,3 @@
         <?php show_job_perf_stats($prod_id, $dbh); ?>
     </div>
 </div>
-

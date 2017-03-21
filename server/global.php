@@ -27,7 +27,8 @@ function show_file_locations($prod_id, $dbh) {
     $query = "SELECT type, sub_type, CONCAT_WS('/', directory, filename) AS path
     FROM prod_cat
     JOIN prod_dir USING (prod_id)
-    WHERE prod_id = :prod_id;";
+    WHERE prod_id = :prod_id
+    ORDER BY sub_type ASC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
     println("<h3>File locations</h3>");
@@ -74,138 +75,237 @@ function show_job_perf_stats($prod_id, $dbh) {
     println("</tbody></table>");
 }
 
-function fetch_previous_prod_ids($dbh, $prod_id, $job_type) {
-    switch ($job_type) {
-        case "sysrem":
-            return sysrem_previous_prod_ids($dbh, $prod_id);
-            break;
-        case "merge":
-            return merge_previous_prod_ids($dbh, $prod_id);
-            break;
-        case "phot":
-            return phot_previous_prod_ids($dbh, $prod_id);
-            break;
-        default:
-            println("UNIMPLEMENTED PREVIOUS JOB: $job_type");
-            break;
+class PipelineJob {
+    public $prod_id;
+    public $href;
+    public $typ;
+    public $tag = NULL;
+
+    function __construct($prod_id, $typ) {
+        $this->prod_id = intval($prod_id);
+
+        switch ($typ) {
+            case 'sysrem':
+                $this->href = "/ngtsqa/sysrempipe.php?prod_id=$this->prod_id";
+                $this->typ = 'SysremPipe';
+                break;
+            case 'merge':
+                $this->href = "/ngtsqa/mergepipe.php?prod_id=$this->prod_id";
+                $this->typ = "MergePipe";
+                break;
+            case 'bls':
+                $this->href = "/ngtsqa/blspipe.php?prod_id=$this->prod_id";
+                $this->typ = "BLSPipe";
+                break;
+            case 'phot':
+                $this->href = "/ngtsqa/photpipe.php?prod_id=$this->prod_id";
+                $this->typ = "PhotPipe";
+                break;
+            case 'refcat':
+                $this->href = "/ngtsqa/refcatpipe.php?prod_id=$this->prod_id";
+                $this->typ = "RefCatPipe";
+                break;
+            case 'confpipe':
+                $this->href = "/ngtsqa/confpipe.php?prod_id=$this->prod_id";
+                $this->typ = "ConfPipe";
+                break;
+            case 'biaspipe':
+                $this->href = "/ngtsqa/biaspipe.php?prod_id=$this->prod_id";
+                $this->typ = "BiasPipe";
+                break;
+            case 'darkpipe':
+                $this->href = "/ngtsqa/darkpipe.php?prod_id=$this->prod_id";
+                $this->typ = "DarkPipe";
+                break;
+            case 'flatpipe':
+                $this->href = "/ngtsqa/flatpipe.php?prod_id=$this->prod_id";
+                $this->typ = "FlatPipe";
+                break;
+            default:
+                println("UNIMPLEMENTED JOB CLASS: $typ");
+                $this->href = "UNKNOWN";
+                break;
+        }
     }
 }
 
-function fetch_next_prod_ids($dbh, $prod_id, $job_type) {
-    switch ($job_type) {
-        case "sysrem":
-            return sysrem_next_prod_ids($dbh, $prod_id);
-            break;
-        case "merge":
-            return merge_next_prod_ids($dbh, $prod_id);
-            break;
-        case "phot":
-            return phot_next_prod_ids($dbh, $prod_id);
-            break;
-        default:
-            println("UNIMPLEMENTED PREVIOUS JOB: $job_type");
-            break;
-    }
-}
-
-function sysrem_previous_prod_ids($dbh, $prod_id) {
+function fetch_sysrem_previous_jobs($dbh, $prod_id) {
+    $prev_jobs = array();
     $query = "SELECT raw_prod_id
-    FROM sysrempipe_prod
-    WHERE prod_id = :prod_id";
+        FROM sysrempipe_prod AS S
+        JOIN mergepipe_prod AS M ON M.prod_id = S.raw_prod_id
+        WHERE S.prod_id = :prod_id
+        ORDER BY raw_prod_id ASC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
-    $out = array();
     foreach ($stmt as $row) {
-        array_push($out, $row["raw_prod_id"]);
+        $job = new PipelineJob($row["raw_prod_id"], 'merge');
+        array_push($prev_jobs, $job);
     }
-    return $out;
+    return $prev_jobs;
 }
 
-function sysrem_next_prod_ids($dbh, $prod_id) {
+function fetch_sysrem_next_jobs($dbh, $prod_id) {
+    $next_jobs = array();
     $query = "SELECT prod_id
-    FROM blspipe_prod
-    WHERE phot_prod_id = :prod_id";
+        FROM blspipe_prod
+        WHERE phot_prod_id = :prod_id
+        ORDER BY prod_id ASC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
-    $out = array();
     foreach ($stmt as $row) {
-        array_push($out, $row["prod_id"]);
+        $job = new PipelineJob($row["prod_id"], 'bls');
+        array_push($next_jobs, $job);
     }
-    return $out;
+    return $next_jobs;
 }
 
-function merge_previous_prod_ids($dbh, $prod_id) {
+function fetch_merge_previous_jobs($dbh, $prod_id) {
     $query = "SELECT sub_prod_id
     FROM mergepipe_sub_prod
-    WHERE prod_id = :prod_id";
+    WHERE prod_id = :prod_id
+    ORDER BY sub_prod_id ASC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
     $out = array();
     foreach ($stmt as $row) {
-        array_push($out, $row["sub_prod_id"]);
+        $job = new PipelineJob($row["sub_prod_id"], 'phot');
+        array_push($out, $job);
     }
     return $out;
 }
 
-function merge_next_prod_ids($dbh, $prod_id) {
+function fetch_merge_next_jobs($dbh, $prod_id) {
     $query = "SELECT prod_id
     FROM sysrempipe_prod
-    WHERE raw_prod_id = :prod_id";
+    WHERE raw_prod_id = :prod_id
+    ORDER BY prod_id ASC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
     $out = array();
     foreach ($stmt as $row) {
-        array_push($out, $row["prod_id"]);
+        $job = new PipelineJob($row["prod_id"], 'sysrem');
+        array_push($out, $job);
     }
     return $out;
 }
 
-function phot_previous_prod_ids($dbh, $prod_id) {
-    return array();
+function fetch_phot_previous_jobs($dbh, $prod_id) {
+    /* Phot jobs have two kinds of previous jobs: refcatpipe and calpipe. The
+    calpipe jobs are split into flatpipe_prod, darkpipe_prod, biaspipe_prod and confmap_prod
+    */
+    $out = array();
+
+    /* TODO: Fetch the calpipe jobs */
+    /* confmap */
+    $query = "SELECT confmap_prod_id
+    FROM photpipe_prod
+    WHERE prod_id = :prod_id
+    ORDER BY confmap_prod_id ASC";
+    $stmt = query($dbh, $query, array('prod_id' => $prod_id));
+
+    foreach ($stmt as $row) {
+        $job = new PipelineJob($row["confmap_prod_id"], 'confpipe');
+        array_push($out, $job);
+    }
+
+    /* bias */
+    $query = "SELECT bias_prod_id
+    FROM photpipe_prod
+    WHERE prod_id = :prod_id
+    ORDER BY bias_prod_id ASC";
+    $stmt = query($dbh, $query, array('prod_id' => $prod_id));
+
+    foreach ($stmt as $row) {
+        $job = new PipelineJob($row["bias_prod_id"], 'biaspipe');
+        array_push($out, $job);
+    }
+
+    /* dark */
+    $query = "SELECT dark_prod_id
+    FROM photpipe_prod
+    WHERE prod_id = :prod_id
+    ORDER BY dark_prod_id ASC";
+    $stmt = query($dbh, $query, array('prod_id' => $prod_id));
+
+    foreach ($stmt as $row) {
+        $job = new PipelineJob($row["dark_prod_id"], 'darkpipe');
+        array_push($out, $job);
+    }
+
+    /* flat */
+    $query = "SELECT flat_prod_id
+    FROM photpipe_prod
+    WHERE prod_id = :prod_id
+    ORDER BY flat_prod_id ASC";
+    $stmt = query($dbh, $query, array('prod_id' => $prod_id));
+
+    foreach ($stmt as $row) {
+        $job = new PipelineJob($row["flat_prod_id"], 'flatpipe');
+        array_push($out, $job);
+    }
+
+
+    /* Fetch the refcatpipe jobs */
+    $query = "SELECT ref_cat_prod_id
+    FROM photpipe_prod
+    WHERE prod_id = :prod_id
+    ORDER BY ref_cat_prod_id ASC";
+    $stmt = query($dbh, $query, array('prod_id' => $prod_id));
+
+    foreach ($stmt as $row) {
+        $job = new PipelineJob($row["ref_cat_prod_id"], 'refcat');
+        array_push($out, $job);
+    }
+
+    return $out;
 }
 
-function phot_next_prod_ids($dbh, $prod_id) {
+function fetch_phot_next_jobs($dbh, $prod_id) {
     $query = "SELECT prod_id
     FROM mergepipe_sub_prod
-    WHERE sub_prod_id = :prod_id";
+    WHERE sub_prod_id = :prod_id
+    ORDER BY prod_id ASC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
     $out = array();
     foreach ($stmt as $row) {
-        array_push($out, $row["prod_id"]);
+        $job = new PipelineJob($row["prod_id"], 'merge');
+        array_push($out, $job);
     }
     return $out;
 }
 
-function render_job_links($dbh, $prod_id, $job_type) {
-    $previous_prod_ids = fetch_previous_prod_ids($dbh, $prod_id, $job_type);
-    $next_prod_ids = fetch_next_prod_ids($dbh, $prod_id, $job_type);
-
+function fetch_linked_jobs($dbh, $prod_id, $job_type) {
     switch ($job_type) {
         case 'sysrem':
-            $previous_url_stub = "/ngtsqa/mergepipe.php";
-            $next_url_stub = "/ngtsqa/blspipe.php";
-            $previous_label = "Merge jobs";
-            $next_label = "BLS jobs";
+            $prev_jobs = fetch_sysrem_previous_jobs($dbh, $prod_id);
+            $next_jobs = fetch_sysrem_next_jobs($dbh, $prod_id);
             break;
         case 'merge':
-            $previous_url_stub = "/ngtsqa/photpipe.php";
-            $next_url_stub = "/ngtsqa/sysrempipe.php";
-            $previous_label = "Phot jobs";
-            $next_label = "Sysrem jobs";
+            $prev_jobs = fetch_merge_previous_jobs($dbh, $prod_id);
+            $next_jobs = fetch_merge_next_jobs($dbh, $prod_id);
             break;
         case 'phot':
-            $previous_url_stub = "/ngtsqa/photpipe.php";
-            $next_url_stub = "/ngtsqa/mergepipe.php";
-            $previous_label = "";
-            $next_label = "Merge jobs";
+            $prev_jobs = fetch_phot_previous_jobs($dbh, $prod_id);
+            $next_jobs = fetch_phot_next_jobs($dbh, $prod_id);
             break;
         default:
-            println("UNIMPLEMENTED JOB LINKS: $job_type");
+            println("UNIMPLEMENTED JOB TYPE: $job_type");
+            $prev_jobs = array();
+            $next_jobs = array();
             break;
     }
 
-    return array($previous_prod_ids, $next_prod_ids, $previous_url_stub, $next_url_stub);
+    usort($prev_jobs, sort_by_prod_id);
+    usort($next_jobs, sort_by_prod_id);
+
+    return array($prev_jobs, $next_jobs);
+}
+
+/* Function to sort two PipelineJob instances by prod_id */
+function sort_by_prod_id($a, $b) {
+    return $a->prod_id - $b->prod_id;
 }
 
 function static_path($prod_id, $job_type, $filename) {

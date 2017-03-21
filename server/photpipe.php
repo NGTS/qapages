@@ -13,7 +13,7 @@ require_once "header.html";
 /* Pre-amble */
 $dbh = db_connect();
 
-list($previous_ids, $next_ids, $previous_stub, $next_stub) = render_job_links($dbh, $prod_id, 'phot');
+list($previous_jobs, $next_jobs) = fetch_linked_jobs($dbh, $prod_id, 'phot');
 ?>
 
 <div class="row">
@@ -28,7 +28,7 @@ list($previous_ids, $next_ids, $previous_stub, $next_stub) = render_job_links($d
     </div>
 </div>
 
-<?php require_once "fragments/job_stats.php"; ?>
+<?php require_once "fragments/job_stats.php" ?>
 
 <div class="row">
     <div class="col-lg-12">

@@ -12,7 +12,7 @@ require_once "header.html";
 /* Pre-amble */
 $dbh = db_connect();
 
-list($previous_ids, $next_ids, $previous_stub, $next_stub) = render_job_links($dbh, $prod_id, 'merge');
+list($previous_jobs, $next_jobs) = fetch_linked_jobs($dbh, $prod_id, 'merge');
 ?>
 
 <div class="row">
