@@ -16,126 +16,6 @@ sys.path.insert(0, os.path.join(
 from ngqa_common import *
 
 
-class AxisTransform(object):
-
-    def __init__(self, canvas, axis):
-        self.canvas = canvas
-        self.axis = axis
-
-    def transform(self, x, y):
-        x = np.atleast_1d(x)
-        y = np.atleast_1d(y)
-
-        points = np.array([x, y]).T
-        x, y = self.axis.transData.transform(points).T
-        _, height = self.canvas.get_width_height()
-        return {
-            'x': x.tolist(),
-            'y': (height - y).tolist(),
-        }
-
-    def transform_pixels(self, *args, **kwargs):
-        results = self.transform(*args, **kwargs)
-        x, y = results['x'], results['y']
-        return {
-            'x': np.round(x).astype(np.int32).tolist(),
-            'y': np.round(y).astype(np.int32).tolist(),
-        }
-
-
-class FigureTransform(object):
-
-    def __init__(self, figure):
-        self.figure = figure
-        assert self.canvas is not None, 'A canvas object must be set'
-        self.width, self.height = self.canvas.get_width_height()
-
-    def axis(self, index):
-        return AxisTransform(self.canvas, self.canvas.figure.axes[index])
-
-    def transform(self, *args, **kwargs):
-        if self.naxes > 1:
-            raise RuntimeError('Figure contains more than one axis. '
-                               'This is unsupported')
-        return self.axis(0).transform(*args, **kwargs)
-
-    def transform_pixels(self, *args, **kwargs):
-        if self.naxes > 1:
-            raise RuntimeError('Figure contains more than one axis. '
-                               'This is unsupported')
-        return self.axis(0).transform_pixels(*args, **kwargs)
-
-    @property
-    def naxes(self):
-        return len(self.figure.axes)
-
-    @property
-    def canvas(self):
-        return self.figure.canvas
-
-
-def compute_night_boundaries(nights):
-    indices, labels = [], []
-    indices.append(0)
-    labels.append(nights[0])
-
-    last_night = nights[0]
-    for i, night in enumerate(nights):
-        if night != last_night:
-            indices.append(i)
-            labels.append(night)
-            last_night = night
-
-    return np.array(indices), np.array(labels)
-
-
-def mark_nights(axis, nights):
-    to_shade = True
-    for left, right in zip(nights[0][:-1], nights[0][1:]):
-        if to_shade:
-            axis.axvspan(left, right, color='0.8')
-        to_shade = not to_shade
-
-
-def render_regionfile(figure, boundaries, prod_ids, manifest_path):
-    assert len(boundaries[0]) == len(prod_ids) == len(boundaries[1])
-    output_filename = 'qa_wcsstats_regions.json'
-
-    trans = FigureTransform(figure)
-
-    dummy = np.ones(len(boundaries[0])) * 0.4
-    results = trans.transform_pixels(boundaries[0], dummy)
-
-    xs = np.array(results['x'][:-1])
-    widths = np.diff(results['x'])
-
-    ind = widths >= 1
-    xs, widths = [data[ind] for data in [xs, widths]]
-
-    yrange_pix = trans.transform_pixels([0, 0], [0.1, 0.7])['y']
-    ys = np.ones_like(xs) * yrange_pix[0]
-    heights = np.ones_like(xs) * (yrange_pix[1] - yrange_pix[0])
-
-    hrefs = np.array([
-        get_url('phot', prod_id) for prod_id in prod_ids
-    ])[ind].tolist()
-
-    out = []
-    for i in range(len(hrefs)):
-        out.append({
-            'xmin': int(xs[i]),
-            'xmax': int(xs[i] + widths[i]),
-            'ymin': yrange_pix[1],
-            'ymax': yrange_pix[0],
-            'href': hrefs[i],
-        })
-
-    with open(output_filename, 'w') as outfile:
-        json.dump(out, outfile, indent=2)
-
-    update_manifest(output_filename, manifest_path)
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--file-root', required=True)
@@ -166,6 +46,7 @@ if __name__ == '__main__':
 
     # Render the image
     output_filename = 'qa_astrometry_stats.png'
+    region_filename = 'qa_wcsstats_regions.json'
 
     with figure_context(output_filename) as fig:
 
@@ -187,6 +68,6 @@ if __name__ == '__main__':
             # Make sure to finish rendering the figure before rendering these regions,
             # including calling `tight_layout`
             fig.tight_layout()
-            render_regionfile(fig, night_boundaries, sub_prod_ids, args.manifest_path)
+            render_regionfile(fig, region_filename, night_boundaries, sub_prod_ids, args.manifest_path)
 
     update_manifest(output_filename, args.manifest_path)

@@ -35,5 +35,8 @@ function add_clickable_handler(elem) {
  * the `region-plot` class.
  */
 $(document).ready(function() {
-    $('img.region-plot').map(function(i, elem) { add_clickable_handler(elem); });
+    $('img.region-plot').each(function(i, elem) {
+        console.log('Adding click handler to ' + i + ': ' + elem);
+        add_clickable_handler(elem);
+    });
 });

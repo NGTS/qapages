@@ -8,8 +8,11 @@ from matplotlib.figure import Figure
 import pymysql
 from pymysql.cursors import DictCursor
 import warnings
+import numpy as np
+import json
 
 __all__ = [
+    'compute_night_boundaries',
     'copy_manifest_files',
     'create_empty',
     'figure_context',
@@ -18,6 +21,10 @@ __all__ = [
     'find_previous_job_files',
     'get_url',
     'update_manifest',
+    'AxisTransform',
+    'FigureTransform',
+    'mark_nights',
+    'render_regionfile',
 ]
 
 # Disable the annoying warnings
@@ -30,6 +37,131 @@ mpl.rc('axes', grid=True)
 mpl.rc('lines', markersize=3, markeredgewidth=0.0)
 mpl.rc('text', usetex=False)
 mpl.rc('font', family='sans-serif')
+
+
+class AxisTransform(object):
+
+    def __init__(self, canvas, axis):
+        self.canvas = canvas
+        self.axis = axis
+
+    def transform(self, x, y):
+        x = np.atleast_1d(x)
+        y = np.atleast_1d(y)
+
+        points = np.array([x, y]).T
+        x, y = self.axis.transData.transform(points).T
+        _, height = self.canvas.get_width_height()
+        return {
+            'x': x.tolist(),
+            'y': (height - y).tolist(),
+        }
+
+    def transform_pixels(self, *args, **kwargs):
+        results = self.transform(*args, **kwargs)
+        x, y = results['x'], results['y']
+        return {
+            'x': np.round(x).astype(np.int32).tolist(),
+            'y': np.round(y).astype(np.int32).tolist(),
+        }
+
+
+class FigureTransform(object):
+
+    def __init__(self, figure):
+        self.figure = figure
+        assert self.canvas is not None, 'A canvas object must be set'
+        self.width, self.height = self.canvas.get_width_height()
+
+    def axis(self, index):
+        return AxisTransform(self.canvas, self.canvas.figure.axes[index])
+
+    def transform(self, *args, **kwargs):
+        if self.naxes > 1:
+            raise RuntimeError('Figure contains more than one axis. '
+                               'This is unsupported')
+        return self.axis(0).transform(*args, **kwargs)
+
+    def transform_pixels(self, *args, **kwargs):
+        if self.naxes > 1:
+            raise RuntimeError('Figure contains more than one axis. '
+                               'This is unsupported')
+        return self.axis(0).transform_pixels(*args, **kwargs)
+
+    @property
+    def naxes(self):
+        return len(self.figure.axes)
+
+    @property
+    def canvas(self):
+        return self.figure.canvas
+
+
+def mark_nights(axis, nights):
+    to_shade = True
+    for left, right in zip(nights[0][:-1], nights[0][1:]):
+        if to_shade:
+            axis.axvspan(left, right, color='0.8')
+        to_shade = not to_shade
+
+
+def render_regionfile(figure, output_filename, boundaries, prod_ids, manifest_path):
+    assert len(boundaries[0]) == len(prod_ids) == len(boundaries[1])
+
+    trans = FigureTransform(figure)
+
+    dummy = np.ones(len(boundaries[0])) * 0.4
+    results = trans.transform_pixels(boundaries[0], dummy)
+
+    xs = np.array(results['x'][:-1])
+    widths = np.diff(results['x'])
+
+    ind = widths >= 1
+    xs, widths = [data[ind] for data in [xs, widths]]
+
+    ylims = figure.get_axes()[0].get_ylim()
+    yrange_pix = trans.transform_pixels([0, 0], ylims)['y']
+    ys = np.ones_like(xs) * yrange_pix[0]
+    heights = np.ones_like(xs) * (yrange_pix[1] - yrange_pix[0])
+
+    hrefs = np.array([
+        get_url('phot', prod_id) for prod_id in prod_ids
+    ])[ind].tolist()
+
+    out = []
+    for i in range(len(hrefs)):
+        out.append({
+            'xmin': int(xs[i]),
+            'xmax': int(xs[i] + widths[i]),
+            'ymin': yrange_pix[1],
+            'ymax': yrange_pix[0],
+            'href': hrefs[i],
+        })
+
+    with open(output_filename, 'w') as outfile:
+        json.dump(out, outfile, indent=2)
+
+    update_manifest(output_filename, manifest_path)
+
+
+def compute_night_boundaries(nights):
+    ''' Given an iterable of nights, compute the indices
+    and unique values for the nights.
+
+    Returns a tuple of (indices, labels)
+    '''
+    indices, labels = [], []
+    indices.append(0)
+    labels.append(nights[0])
+
+    last_night = nights[0]
+    for i, night in enumerate(nights):
+        if night != last_night:
+            indices.append(i)
+            labels.append(night)
+            last_night = night
+
+    return np.array(indices), np.array(labels)
 
 
 def copy_manifest_files(manifest_path, webserver_dir):

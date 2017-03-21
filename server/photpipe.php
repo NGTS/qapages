@@ -24,6 +24,12 @@ list($previous_jobs, $next_jobs) = fetch_linked_jobs($dbh, $prod_id, 'phot');
     <div class="col-md-6">
         <?php show_image($prod_id, 'phot', 'qa_astrometry_stats.png'); ?>
     </div>
+    <div class="col-md-6">
+        <?php show_image($prod_id, 'phot', 'qa_autoguider_stats_x.png'); ?>
+    </div>
+    <div class="col-md-6">
+        <?php show_image($prod_id, 'phot', 'qa_autoguider_stats_y.png'); ?>
+    </div>
 </div>
 
 <?php require_once "fragments/job_links.php" ?>

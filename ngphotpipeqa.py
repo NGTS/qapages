@@ -28,6 +28,7 @@ if __name__ == '__main__':
 
     jobs = [
         'plot_astrometry_stats.py',
+        'plot_ag_stats.py',
         ]
 
     to_copy_files = []
