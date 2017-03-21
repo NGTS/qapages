@@ -9,8 +9,16 @@
         service:
             name: apache2
             state: restarted
+        when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+      - name: restart apache
+        service:
+            name: httpd
+            state: restarted
+        when: ansible_distribution == 'CentOS'
+
   tasks:
-      - name: Install required packages
+      - name: Install required packages (Debian/Ubuntu)
         apt:
             name: "{{ item }}"
             update_cache: yes
@@ -26,6 +34,49 @@
             - python-mysqldb
             - multitail
             - tree
+        when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+      - name: Install required packages (CentOS)
+        yum:
+            name: "{{ item }}"
+            update_cache: yes
+        with_items:
+            - mariadb
+            - mariadb-server
+            - httpd
+            - php
+            - php-mysql
+            - MySQL-python
+            - tree
+        when: ansible_distribution == 'CentOS'
+
+      - name: Enable mysql (Debian)
+        service:
+            name: mysql
+            enabled: yes
+            state: started
+        when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+      - name: Enable mysql (CentOS)
+        service:
+            name: mariadb
+            enabled: yes
+            state: started
+        when: ansible_distribution == 'CentOS'
+
+      - name: Enable apache (Debian)
+        service:
+            name: apache2
+            enabled: yes
+            state: started
+        when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+      - name: Enable apache (CentOS)
+        service:
+            name: httpd
+            enabled: yes
+            state: started
+        when: ansible_distribution == 'CentOS'
 
       - name: Add the mysql user
         mysql_user:
@@ -49,25 +100,45 @@
       - name: Ensure the host is known as ngtsdb
         lineinfile:
             name: /etc/hosts
-            regexp: '^127\.0\.0\.1'
-            line: '127.0.0.1 localhost ngtsdb'
+            line: '127.0.0.1    localhost ngtsdb'
+            insertafter: EOF
             owner: root
             group: root
             mode: 0644
 
-      - name: Remove the default apache config file
+      - name: Remove the default apache config file (Debian)
         file:
             name: "{{ item }}"
             state: absent
         with_items:
             - /etc/apache2/sites-enabled/000-default.conf
             - /etc/apache2/sites-available/000-default.conf
-        notify:
-            - restart apache
+        when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+        notify: restart apache
 
-      - name: Install the custom apache config
+      - name: Remove the default apache config file (CentOS)
+        template:
+            src: centos-welcome.conf
+            dest: /etc/httpd/conf.d/welcome.conf
+            owner: root
+            group: root
+        when: ansible_distribution == 'CentOS'
+        notify: restart apache
+
+      - name: Install the custom apache config (Debian)
         template:
             src: 001-ngtsqa.conf
             dest: /etc/apache2/sites-enabled/001-ngtsqa.conf
             owner: root
             group: root
+        when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+        notify: restart apache
+
+      - name: Install the custom apache config (CentOS)
+        template:
+            src: 001-ngtsqa.conf
+            dest: /etc/httpd/conf.d/001-ngtsqa.conf
+            owner: root
+            group: root
+        when: ansible_distribution == 'CentOS'
+        notify: restart apache
