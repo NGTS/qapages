@@ -4,7 +4,13 @@
         <div class="scrollable-table-placeholder">
             <table class="table">
                 <thead>
-                    <tr><th>Product id</th><th>Job type</th><th>Field</th><th>Tag</th></tr>
+                    <tr>
+                        <th>Product id</th>
+                        <th>Job type</th>
+                        <th>Field</th>
+                        <th>Camera id</th>
+                        <th>Tag</th>
+                    </tr>
                 </thead>
                 <tbody>
                 <?php
@@ -21,7 +27,13 @@
                         $tag = '-';
                     }
 
-                    present_job_table_row($p->prod_id, $p->typ, $field, $tag, $p->href);
+                    if ($p->camera_id) {
+                        $camera_id = $p->camera_id;
+                    } else {
+                        $camera_id = '-';
+                    }
+
+                    present_job_table_row($p->prod_id, $p->typ, $field, $camera_id, $tag, $p->href);
                 }
                 ?>
             </table>
@@ -33,7 +45,13 @@
         <div class="scrollable-table-placeholder">
             <table class="table">
                 <thead>
-                    <tr><th>Product id</th><th>Job type</th><th>Field</th><th>Tag</th></tr>
+                    <tr>
+                        <th>Product id</th>
+                        <th>Job type</th>
+                        <th>Field</th>
+                        <th>Camera id</th>
+                        <th>Tag</th>
+                    </tr>
                 </thead>
                 <tbody>
                 <?php
@@ -50,14 +68,13 @@
                         $tag = '-';
                     }
 
-                    println("
-                        <tr>
-                            <td><a href=\"$p->href\">$p->prod_id</a></td>
-                            <td>$p->typ</td>
-                            <td>$field</td>
-                            <td>$tag</td>
-                        </tr>
-                        ");
+                    if ($p->camera_id) {
+                        $camera_id = $p->camera_id;
+                    } else {
+                        $camera_id = '-';
+                    }
+
+                    present_job_table_row($p->prod_id, $p->typ, $field, $camera_id, $tag, $p->href);
                 }
                 ?>
             </table>

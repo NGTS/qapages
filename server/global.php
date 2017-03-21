@@ -57,13 +57,14 @@ function check_valid_prod_id($prod_id, $dbh, $job_type) {
     }
 }
 
-function present_job_table_row($prod_id, $job_type, $field, $tag, $href = NULL) {
+function present_job_table_row($prod_id, $job_type, $field, $camera_id, $tag, $href = NULL) {
     if ($href) {
         println("
         <tr>
         <td><a href=\"$href\">$prod_id</a></td>
         <td>$job_type</td>
         <td>$field</td>
+        <td>$camera_id</td>
         <td>$tag</td>
         </tr>
         ");
@@ -73,29 +74,31 @@ function present_job_table_row($prod_id, $job_type, $field, $tag, $href = NULL) 
         <td>$prod_id</td>
         <td>$job_type</td>
         <td>$field</td>
+        <td>$camera_id</td>
         <td>$tag</td>
         </tr>
         ");
     }
 }
 
-function render_job_info($dbh, $prod_id, $job_type) {
+function fetch_job_info($dbh, $prod_id, $job_type) {
     $tag = '-';
     $field = '-';
     $typ = '-';
     $tag = '-';
+    $camera_id = '-';
 
     switch ($job_type) {
         case 'merge':
             $typ = 'MergePipe';
-            $stmt = query($dbh, "SELECT field, output_tag as tag
+            $stmt = query($dbh, "SELECT field, output_tag as tag, camera_id
                     FROM mergepipe_prod WHERE prod_id = :prod_id",
                 array('prod_id' => $prod_id));
             $results = $stmt->fetch(PDO::FETCH_ASSOC);
             break;
         case 'sysrem':
             $typ = 'SysremPipe';
-            $stmt = query($dbh, "SELECT M.field, S.output_tag as tag
+            $stmt = query($dbh, "SELECT M.field, M.camera_id, S.output_tag as tag
                     FROM mergepipe_prod AS M
                     JOIN sysrempipe_prod AS S
                         ON (M.prod_id = S.raw_prod_id)
@@ -103,6 +106,15 @@ function render_job_info($dbh, $prod_id, $job_type) {
                 array('prod_id' => $prod_id));
             $results = $stmt->fetch(PDO::FETCH_ASSOC);
             break;
+        case 'refcat':
+            $typ = 'RefCatPipe';
+            $stmt = query($dbh, "SELECT R.tag, A.field, A.camera_id
+                FROM refcatpipe_prod AS R
+                JOIN ngts_ops.action_summary_log AS A
+                    USING (action_id)
+                WHERE R.prod_id = :prod_id",
+                array('prod_id' => $prod_id));
+            $results = $stmt->fetch(PDO::FETCH_ASSOC);
         default:
             println("UNKNOWN JOB INFO TYPE: $job_type");
             break;
@@ -110,6 +122,14 @@ function render_job_info($dbh, $prod_id, $job_type) {
 
     $field = $results["field"];
     $tag = $results["tag"];
+    $camera_id = $results["camera_id"];
+
+    return array('prod_id' => $prod_id, 'job_type' => $typ,
+        'field' => $field, 'tag' => $tag, 'camera_id' => $camera_id);
+}
+
+function render_job_info($dbh, $prod_id, $job_type) {
+    $job_info = fetch_job_info($dbh, $prod_id, $job_type);
 
     println("<table class=\"table\">
     <thead>
@@ -117,13 +137,16 @@ function render_job_info($dbh, $prod_id, $job_type) {
             <th>Product id</th>
             <th>Job type</th>
             <th>Field</th>
+            <th>Camera id</th>
             <th>Tag</th>
         </tr>
     </thead>
     <tbody>");
-    present_job_table_row($prod_id, $typ, $field, $tag);
+    present_job_table_row($prod_id, $job_info["job_type"],
+        $job_info["field"], $job_info["camera_id"], $job_info["tag"]);
     println("</tbody>
     </table>");
+
 }
 
 function show_file_locations($prod_id, $dbh, $refcat = false) {
@@ -195,6 +218,7 @@ class PipelineJob {
     public $typ;
     public $tag = NULL;
     public $field = NULL;
+    public $camera_id = NULL;
 
     function __construct($prod_id, $typ) {
         $this->prod_id = intval($prod_id);
@@ -246,7 +270,7 @@ class PipelineJob {
 
 function fetch_sysrem_previous_jobs($dbh, $prod_id) {
     $prev_jobs = array();
-    $query = "SELECT S.raw_prod_id, M.field, M.output_tag AS tag
+    $query = "SELECT S.raw_prod_id, M.field, M.camera_id, M.output_tag AS tag
         FROM sysrempipe_prod AS S
         JOIN mergepipe_prod AS M
             ON M.prod_id = S.raw_prod_id
@@ -258,6 +282,7 @@ function fetch_sysrem_previous_jobs($dbh, $prod_id) {
         $job = new PipelineJob($row["raw_prod_id"], 'merge');
         $job->field = $row["field"];
         $job->tag = $row["tag"];
+        $job->camera_id = $row["camera_id"];
         array_push($prev_jobs, $job);
     }
     return $prev_jobs;
@@ -265,7 +290,7 @@ function fetch_sysrem_previous_jobs($dbh, $prod_id) {
 
 function fetch_sysrem_next_jobs($dbh, $prod_id) {
     $next_jobs = array();
-    $query = "SELECT B.prod_id, B.output_tag AS tag, M.field
+    $query = "SELECT B.prod_id, B.output_tag AS tag, M.field, M.camera_id
         FROM blspipe_prod AS B
         JOIN sysrempipe_prod AS S
             ON (S.prod_id = B.phot_prod_id)
@@ -279,13 +304,14 @@ function fetch_sysrem_next_jobs($dbh, $prod_id) {
         $job = new PipelineJob($row["prod_id"], 'bls');
         $job->tag = $row["tag"];
         $job->field = $row["field"];
+        $job->camera_id = $row["camera_id"];
         array_push($next_jobs, $job);
     }
     return $next_jobs;
 }
 
 function fetch_merge_previous_jobs($dbh, $prod_id) {
-    $query = "SELECT S.sub_prod_id, A.field, P.tag
+    $query = "SELECT S.sub_prod_id, A.field, P.tag, A.camera_id
     FROM mergepipe_sub_prod AS S
     JOIN photpipe_prod AS P
         ON (S.sub_prod_id = P.prod_id)
@@ -300,13 +326,14 @@ function fetch_merge_previous_jobs($dbh, $prod_id) {
         $job = new PipelineJob($row["sub_prod_id"], 'phot');
         $job->field = $row["field"];
         $job->tag = $row["tag"];
+        $job->camera_id = $row["camera_id"];
         array_push($out, $job);
     }
     return $out;
 }
 
 function fetch_merge_next_jobs($dbh, $prod_id) {
-    $query = "SELECT S.prod_id, M.field, S.output_tag as tag
+    $query = "SELECT S.prod_id, M.field, S.output_tag as tag, M.camera_id
     FROM sysrempipe_prod AS S
     JOIN mergepipe_prod AS M
         ON (S.raw_prod_id = M.prod_id)
@@ -319,6 +346,7 @@ function fetch_merge_next_jobs($dbh, $prod_id) {
         $job = new PipelineJob($row["prod_id"], 'sysrem');
         $job->tag = $row["tag"];
         $job->field = $row["field"];
+        $job->camera_id = $row["camera_id"];
         array_push($out, $job);
     }
     return $out;
@@ -344,51 +372,62 @@ function fetch_phot_previous_jobs($dbh, $prod_id) {
     }
 
     /* bias */
-    $query = "SELECT bias_prod_id
-    FROM photpipe_prod
-    WHERE prod_id = :prod_id
-    ORDER BY bias_prod_id ASC";
+    $query = "SELECT bias_prod_id, B.tag
+    FROM photpipe_prod AS P
+    LEFT JOIN biaspipe_prod AS B
+        ON (B.prod_id = P.bias_prod_id)
+    WHERE P.prod_id = :prod_id
+    ORDER BY P.bias_prod_id ASC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
     foreach ($stmt as $row) {
         $job = new PipelineJob($row["bias_prod_id"], 'biaspipe');
+        $job->tag = $row["tag"];
         array_push($out, $job);
     }
 
     /* dark */
-    $query = "SELECT dark_prod_id
-    FROM photpipe_prod
-    WHERE prod_id = :prod_id
-    ORDER BY dark_prod_id ASC";
+    $query = "SELECT P.dark_prod_id, D.tag
+    FROM photpipe_prod AS P
+    LEFT JOIN darkpipe_prod AS D
+        ON (P.dark_prod_id = D.prod_id)
+    WHERE P.prod_id = :prod_id
+    ORDER BY P.dark_prod_id ASC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
     foreach ($stmt as $row) {
         $job = new PipelineJob($row["dark_prod_id"], 'darkpipe');
+        $job->tag = $row["tag"];
         array_push($out, $job);
     }
 
     /* flat */
-    $query = "SELECT flat_prod_id
-    FROM photpipe_prod
-    WHERE prod_id = :prod_id
-    ORDER BY flat_prod_id ASC";
+    $query = "SELECT P.flat_prod_id, F.tag
+    FROM photpipe_prod AS P
+    LEFT JOIN flatpipe_prod AS F
+        ON (F.prod_id = P.dark_prod_id)
+    WHERE P.prod_id = :prod_id
+    ORDER BY P.flat_prod_id ASC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
     foreach ($stmt as $row) {
         $job = new PipelineJob($row["flat_prod_id"], 'flatpipe');
+        $job->tag = $row["tag"];
         array_push($out, $job);
     }
 
-
     /* Fetch the refcatpipe jobs */
-    $query = "SELECT ref_cat_prod_id
-    FROM photpipe_prod
-    WHERE prod_id = :prod_id
-    ORDER BY ref_cat_prod_id ASC";
+    $query = "SELECT ref_cat_prod_id, R.tag
+    FROM photpipe_prod AS P
+    LEFT JOIN refcatpipe_prod AS R
+        ON (R.prod_id = P.ref_cat_prod_id)
+    WHERE P.prod_id = :prod_id
+    ORDER BY P.ref_cat_prod_id ASC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
     foreach ($stmt as $row) {
         $job = new PipelineJob($row["ref_cat_prod_id"], 'refcat');
+        $job->tag = $row["tag"];
         array_push($out, $job);
     }
 
@@ -396,7 +435,7 @@ function fetch_phot_previous_jobs($dbh, $prod_id) {
 }
 
 function fetch_phot_next_jobs($dbh, $prod_id) {
-    $query = "SELECT S.prod_id, M.field, M.output_tag AS tag
+    $query = "SELECT S.prod_id, M.field, M.output_tag AS tag, M.camera_id
     FROM mergepipe_sub_prod AS S
     JOIN mergepipe_prod AS M
         ON (S.prod_id = M.prod_id)
@@ -409,6 +448,7 @@ function fetch_phot_next_jobs($dbh, $prod_id) {
         $job = new PipelineJob($row["prod_id"], 'merge');
         $job->field = $row["field"];
         $job->tag = $row["tag"];
+        $job->camera_id = $row["camera_id"];
         array_push($out, $job);
     }
     return $out;
@@ -475,6 +515,9 @@ function static_path($prod_id, $job_type, $filename) {
             break;
         case 'phot':
             return "/ngtsqa/joboutput/PhotPipe/$prod_id/$filename";
+            break;
+        case 'refcat':
+            return "/ngtsqa/joboutput/RefCatPipe/$prod_id/$filename";
             break;
         default:
             println("UNIMPLEMENTED SHOW IMAGE: $job_type");
