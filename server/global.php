@@ -41,13 +41,26 @@ function show_file_locations($prod_id, $dbh) {
 
 function show_job_perf_stats($prod_id, $dbh) {
     $query = "SELECT * FROM job_perfstats
-    WHERE job_id = :prod_id";
+    WHERE job_id = :prod_id
+    ORDER BY wallclock DESC";
     $stmt = query($dbh, $query, array('prod_id' => $prod_id));
 
     println("<h3>Job perf</h3>");
-    println("<table class=\"table\"><thead><tr><th>Stage</th><th>Time taken</th></thead><tbody>");
+    println("<table class=\"table\">
+    <thead>
+    <tr>
+        <th>Stage</th>
+        <th>Time taken</th>
+        <th>Max memory (MB)</th>
+    </thead>
+    <tbody>");
     foreach ($stmt as $row) {
-        println("<tr><td>$row[command]</td><td>$row[wallclock]</td></tr>");
+        $maxrss_mb = number_format($row["maxrss"] / 1024, 2);
+        println("<tr>
+            <td>$row[command]</td>
+            <td>$row[wallclock]</td>
+            <td>$maxrss_mb</td>
+            </tr>");
     }
 
     $query = "SELECT SUM(wallclock) AS total_time FROM job_perfstats
