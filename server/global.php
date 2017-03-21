@@ -23,6 +23,37 @@ function query($dbh, $query, $args) {
     return $stmt;
 }
 
+function check_valid_prod_id($prod_id, $dbh, $job_type) {
+    if ($prod_id == NULL) {
+        header('Location: /ngtsqa/errors/no_prod_id.html');
+        exit;
+    }
+
+    switch ($job_type) {
+        case 'phot':
+            $query = "SELECT COUNT(*) FROM photpipe_prod WHERE prod_id = :prod_id";
+            break;
+        case 'merge':
+            $query = "SELECT COUNT(*) FROM mergepipe_prod WHERE prod_id = :prod_id";
+            break;
+        case 'sysrem':
+            $query = "SELECT COUNT(*) FROM sysrempipe_prod WHERE prod_id = :prod_id";
+            break;
+        default:
+            header('Location: /ngtsqa/404.html');
+            exit;
+            break;
+    }
+
+    $stmt = query($dbh, $query, array('prod_id' => $prod_id));
+    $nrows = $stmt->fetch()[0];
+
+    if ($nrows != 1) {
+        header("Location: /ngtsqa/errors/prod_id_not_found.php?prod_id=$prod_id");
+        exit;
+    }
+}
+
 function show_file_locations($prod_id, $dbh) {
     $query = "SELECT type, sub_type, CONCAT_WS('/', directory, filename) AS path
     FROM prod_cat
@@ -51,7 +82,7 @@ function show_job_perf_stats($prod_id, $dbh) {
     <thead>
     <tr>
         <th>Stage</th>
-        <th>Time taken</th>
+        <th>Time taken (s)</th>
         <th>Max memory (MB)</th>
     </thead>
     <tbody>");
@@ -297,8 +328,8 @@ function fetch_linked_jobs($dbh, $prod_id, $job_type) {
             break;
     }
 
-    usort($prev_jobs, sort_by_prod_id);
-    usort($next_jobs, sort_by_prod_id);
+    usort($prev_jobs, 'sort_by_prod_id');
+    usort($next_jobs, 'sort_by_prod_id');
 
     return array($prev_jobs, $next_jobs);
 }

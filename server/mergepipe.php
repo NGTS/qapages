@@ -1,16 +1,14 @@
 <?php
 $prod_id = $_GET['prod_id'];
 
-if ($prod_id === NULL) {
-    header('Location: /ngtsqa/404.html');
-}
-
 require_once "global.php";
 require_once "db.php";
 require_once "header.html";
 
 /* Pre-amble */
 $dbh = db_connect();
+
+check_valid_prod_id($prod_id, $dbh, 'merge');
 
 list($previous_jobs, $next_jobs) = fetch_linked_jobs($dbh, $prod_id, 'merge');
 ?>
