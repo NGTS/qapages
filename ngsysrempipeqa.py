@@ -4,7 +4,6 @@
 from __future__ import print_function, absolute_import, division
 import argparse
 import sys
-import glob
 import os
 import subprocess as sp
 sys.path.insert(0, os.path.dirname(__file__))
@@ -26,7 +25,8 @@ if __name__ == '__main__':
     create_empty(args.manifest_path)
 
     jobs = [
-        'plot_flux_vs_rms.py',
+        # 'plot_flux_vs_rms.py',
+        'render_fluxbin_analysis.py',
         ]
 
     for script_name in jobs:

@@ -36,7 +36,6 @@ function add_clickable_handler(elem) {
  */
 $(document).ready(function() {
     $('img.region-plot').each(function(i, elem) {
-        console.log('Adding click handler to ' + i + ': ' + elem);
         add_clickable_handler(elem);
     });
 });

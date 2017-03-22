@@ -32,6 +32,16 @@ list($previous_jobs, $next_jobs) = fetch_linked_jobs($dbh, $prod_id, 'sysrem');
     </div>
 </div>
 
+<div class="row">
+    <div class="col-lg-12">
+    <?php
+        $fluxbin_path = "$static_document_root/ngtsqa/SysremPipe/$prod_id/qa_fluxbin.html";
+        $contents = file_get_contents($fluxbin_path);
+        echo $contents;
+    ?>
+    </div>
+</div>
+
 <?php require_once "fragments/job_links.php"; ?>
 
 <div class="row">

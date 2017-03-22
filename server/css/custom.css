@@ -11,3 +11,7 @@ body {
     height: 400px;
     overflow: auto;
 }
+
+iframe {
+    background-color: red;
+}

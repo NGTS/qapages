@@ -2,8 +2,9 @@
 
 error_reporting(E_ERROR | E_WARNING | E_PARSE | E_NOTICE);
 
-$document_root = "/var/www";
+$document_root = $_SERVER["DOCUMENT_ROOT"];
 $qa_document_root = "$document_root/ngtsqa";
+$static_document_root = "$document_root/static";
 
 function println($msg) {
     echo $msg . PHP_EOL;

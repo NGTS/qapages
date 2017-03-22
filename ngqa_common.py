@@ -202,12 +202,15 @@ def find_file(root, file_type):
     The code also checks that the file exists, and prints an error
     message if not.
     '''
-    file_type = file_type.lower()
-    stub = {
-        'imagelist': '_IMAGELIST.fits',
-        'catalogue': '_CATALOGUE.fits',
-        'sysrem_catalogue': '_SYSREM_CATALOGUE.fits',
-    }[file_type]
+    try:
+        stub = {
+            'imagelist': '_IMAGELIST.fits',
+            'catalogue': '_CATALOGUE.fits',
+            'sysrem_catalogue': '_SYSREM_CATALOGUE.fits',
+            'sysrem_flux': '_SYSREM_FLUX3.fits',
+        }[file_type.lower()]
+    except KeyError:
+        raise RuntimeError('Unsupported file type for find_file function: {}'.format(file_type))
     path = root + stub
     assert os.path.isfile(path), 'cannot find file specified: {0}'.format(path)
     return path
