@@ -6,7 +6,8 @@ import argparse
 import fitsio
 import numpy as np
 import json
-from astropy.stats import sigma_clip
+from astropy.stats import sigma_clip, sigma_clipped_stats
+from scipy.stats import binned_statistic
 from matplotlib.backends.backend_agg import FigureCanvasAgg as Canvas
 from matplotlib.figure import Figure
 import sys
@@ -15,6 +16,13 @@ sys.path.insert(0, os.path.join(
     os.path.dirname(__file__),
     '..'))
 from ngqa_common import *
+
+
+def compute_profile(x, y, bins=100):
+    by, bx, _ = binned_statistic(x, y, lambda d: sigma_clipped_stats(d)[1], bins=bins)
+    be, _, _ = binned_statistic(x, y, lambda d: sigma_clipped_stats(d)[2], bins=bx)
+    bx = (bx[:-1] + bx[1:]) / 2.
+    return bx, by, be
 
 
 if __name__ == '__main__':
@@ -57,22 +65,29 @@ if __name__ == '__main__':
     iterables = zip(
         [ag_errx, ag_erry],
         [x_output_filename, y_output_filename],
-        [x_regions_filename, y_regions_filename]
+        [x_regions_filename, y_regions_filename],
+        ['x', 'y'],
         )
 
-    for data, output_filename, region_filename in iterables:
+    for data, output_filename, region_filename, dimension in iterables:
         with figure_context(output_filename) as fig:
             sc = sigma_clip(data)
             ind = ~sc.mask
 
             axis = fig.add_subplot(111)
-            axis.plot(frames[ind], data[ind], 'k,')
+            axis.plot(frames[ind], data[ind], 'k,', alpha=0.3)
+            profile_x, profile_med, profile_width = compute_profile(frames[ind], data[ind])
+            axis.fill_between(profile_x, profile_med - profile_width / 2., profile_med + profile_width / 2.,
+                              color='#BECAE3', alpha=0.5)
+            axis.plot(profile_x, profile_med, 'r.')
+            # axis.grid(True, axis='y')
+
             axis.set(
                 xlabel='Frame',
-                ylabel='Autoguider error ["]',
+                ylabel='Autoguider error {label} ["]'.format(label=dimension),
                 xlim=(0, frames[-1]),
+                ylim=(-0.75, 0.75),
             )
-            # axis.grid(True, axis='y')
 
             if len(np.unique(night)) > 1:
                 mark_nights(axis, night_boundaries)
