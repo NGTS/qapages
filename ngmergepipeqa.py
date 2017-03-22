@@ -26,8 +26,9 @@ if __name__ == '__main__':
     create_empty(args.manifest_path)
 
     jobs = [
-        'plot_astrometry_stats.py',
-        'plot_ag_stats.py',
+        # 'plot_astrometry_stats.py',
+        # 'plot_ag_stats.py',
+        'plot_meta_measurements.py',
         ]
 
     to_copy_files = []

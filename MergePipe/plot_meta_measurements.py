@@ -41,27 +41,29 @@ if __name__ == '__main__':
     sub_prod_ids = sub_prod_ids[night_boundaries[0]]
 
     # Render the image
-    output_filename = 'qa_astrometry_stats.png'
-    region_filename = 'qa_wcsstats_regions.json'
+    output_filename = 'qa_meta_stats.png'
+    region_filename = 'qa_metastats_regions.json'
 
     with figure_context(output_filename) as fig:
-
         axis = fig.add_subplot(111)
-        axis.plot(frames, stdcrms, 'k,')
-        axis.set(
-            xlabel='Frame',
-            ylabel='STDCRMS ["]',
-            xlim=(0, frames[-1]),
-            ylim=(0.1, 0.7),
-        )
-        axis.grid(True, axis='y')
+        pass
+    #     axis.plot(frames, stdcrms, 'k,')
+    #     axis.set(
+    #         xlabel='Frame',
+    #         ylabel='STDCRMS ["]',
+    #         xlim=(0, frames[-1]),
+    #         ylim=(0.1, 0.7),
+    #     )
+    #     axis.grid(True, axis='y')
 
-        if len(np.unique(night)) > 1:
-            add_click_regions(
-                axis,
-                night_boundaries,
-                region_filename,
-                sub_prod_ids,
-                args.manifest_path)
+    #     if len(np.unique(night)) > 1:
+    #         mark_nights(axis, night_boundaries)
+    #         axis.set_xticks(night_boundaries[0][label_idx])
+    #         axis.set_xticklabels(night_boundaries[1][label_idx], rotation=90)
+
+    #         # Make sure to finish rendering the figure before rendering these regions,
+    #         # including calling `tight_layout`
+    #         fig.tight_layout()
+    #         render_regionfile(fig, region_filename, night_boundaries, sub_prod_ids, args.manifest_path)
 
     update_manifest(output_filename, args.manifest_path)

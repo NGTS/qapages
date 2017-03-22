@@ -12,19 +12,20 @@ import numpy as np
 import json
 
 __all__ = [
+    'AxisTransform',
+    'FigureTransform',
+    'add_click_regions',
     'compute_night_boundaries',
     'copy_manifest_files',
     'create_empty',
     'figure_context',
-    'find_file',
     'find_existing_job_files',
+    'find_file',
     'find_previous_job_files',
     'get_url',
-    'update_manifest',
-    'AxisTransform',
-    'FigureTransform',
     'mark_nights',
     'render_regionfile',
+    'update_manifest',
 ]
 
 # Disable the annoying warnings
@@ -97,51 +98,20 @@ class FigureTransform(object):
         return self.figure.canvas
 
 
-def mark_nights(axis, nights):
-    to_shade = True
-    for left, right in zip(nights[0][:-1], nights[0][1:]):
-        if to_shade:
-            axis.axvspan(left, right, color='0.8')
-        to_shade = not to_shade
+def add_click_regions(axis, night_boundaries, region_filename, prod_ids, manifest_path):
+    ''' Mark regions on the figure, and render a region file to disk.
+    '''
+    # Only select some of the labels to print
+    label_idx = np.linspace(
+        0, len(night_boundaries[0]) - 1, 10).astype(np.int32)
 
+    mark_nights(axis, night_boundaries)
+    axis.set_xticks(night_boundaries[0][label_idx])
+    axis.set_xticklabels(night_boundaries[1][label_idx], rotation=90)
 
-def render_regionfile(figure, output_filename, boundaries, prod_ids, manifest_path):
-    assert len(boundaries[0]) == len(prod_ids) == len(boundaries[1])
-
-    trans = FigureTransform(figure)
-
-    dummy = np.ones(len(boundaries[0])) * 0.4
-    results = trans.transform_pixels(boundaries[0], dummy)
-
-    xs = np.array(results['x'][:-1])
-    widths = np.diff(results['x'])
-
-    ind = widths >= 1
-    xs, widths = [data[ind] for data in [xs, widths]]
-
-    ylims = figure.get_axes()[0].get_ylim()
-    yrange_pix = trans.transform_pixels([0, 0], ylims)['y']
-    ys = np.ones_like(xs) * yrange_pix[0]
-    heights = np.ones_like(xs) * (yrange_pix[1] - yrange_pix[0])
-
-    hrefs = np.array([
-        get_url('phot', prod_id) for prod_id in prod_ids
-    ])[ind].tolist()
-
-    out = []
-    for i in range(len(hrefs)):
-        out.append({
-            'xmin': int(xs[i]),
-            'xmax': int(xs[i] + widths[i]),
-            'ymin': yrange_pix[1],
-            'ymax': yrange_pix[0],
-            'href': hrefs[i],
-        })
-
-    with open(output_filename, 'w') as outfile:
-        json.dump(out, outfile, indent=2)
-
-    update_manifest(output_filename, manifest_path)
+    # Make sure to finish rendering the figure before rendering these regions,
+    # including calling `tight_layout`
+    render_regionfile(axis, region_filename, night_boundaries, prod_ids, manifest_path)
 
 
 def compute_night_boundaries(nights):
@@ -195,27 +165,6 @@ def figure_context(filename, *args, **kwargs):
     canvas.print_figure(filename)
 
 
-def find_file(root, file_type):
-    ''' Given a file root and measurement type, return the path (without
-    directory) of the corresponding file.
-
-    The code also checks that the file exists, and prints an error
-    message if not.
-    '''
-    try:
-        stub = {
-            'imagelist': '_IMAGELIST.fits',
-            'catalogue': '_CATALOGUE.fits',
-            'sysrem_catalogue': '_SYSREM_CATALOGUE.fits',
-            'sysrem_flux': '_SYSREM_FLUX3.fits',
-        }[file_type.lower()]
-    except KeyError:
-        raise RuntimeError('Unsupported file type for find_file function: {}'.format(file_type))
-    path = root + stub
-    assert os.path.isfile(path), 'cannot find file specified: {0}'.format(path)
-    return path
-
-
 def find_existing_job_files(prod_id):
     ''' Given the product id of a previous job - one that has already
     been run through the pipeline, and _must_ exist!!! - return the
@@ -237,6 +186,27 @@ def find_existing_job_files(prod_id):
         row['filetype']: row['path']
         for row in results
     }
+
+
+def find_file(root, file_type):
+    ''' Given a file root and measurement type, return the path (without
+    directory) of the corresponding file.
+
+    The code also checks that the file exists, and prints an error
+    message if not.
+    '''
+    try:
+        stub = {
+            'imagelist': '_IMAGELIST.fits',
+            'catalogue': '_CATALOGUE.fits',
+            'sysrem_catalogue': '_SYSREM_CATALOGUE.fits',
+            'sysrem_flux': '_SYSREM_FLUX3.fits',
+        }[file_type.lower()]
+    except KeyError:
+        raise RuntimeError('Unsupported file type for find_file function: {}'.format(file_type))
+    path = root + stub
+    assert os.path.isfile(path), 'cannot find file specified: {0}'.format(path)
+    return path
 
 
 def find_previous_job_files(prod_id, job_type):
@@ -284,7 +254,6 @@ def find_previous_job_files(prod_id, job_type):
             )
 
 
-
 def get_url(job_type, prod_id):
     ''' Given a job type and product it, return the root url of the job
     QA result.
@@ -296,6 +265,53 @@ def get_url(job_type, prod_id):
     return '/ngtsqa/{endpoint}?prod_id={prod_id}'.format(
         endpoint=endpoints[job_type.lower()],
         prod_id=prod_id)
+
+
+def mark_nights(axis, nights):
+    to_shade = True
+    for left, right in zip(nights[0][:-1], nights[0][1:]):
+        if to_shade:
+            axis.axvspan(left, right, color='0.8')
+        to_shade = not to_shade
+
+
+def render_regionfile(axis, output_filename, boundaries, prod_ids, manifest_path):
+    assert len(boundaries[0]) == len(prod_ids) == len(boundaries[1])
+
+    trans = FigureTransform(figure)
+
+    dummy = np.ones(len(boundaries[0])) * 0.4
+    results = trans.transform_pixels(boundaries[0], dummy)
+
+    xs = np.array(results['x'][:-1])
+    widths = np.diff(results['x'])
+
+    ind = widths >= 1
+    xs, widths = [data[ind] for data in [xs, widths]]
+
+    ylims = figure.get_axes()[0].get_ylim()
+    yrange_pix = trans.transform_pixels([0, 0], ylims)['y']
+    ys = np.ones_like(xs) * yrange_pix[0]
+    heights = np.ones_like(xs) * (yrange_pix[1] - yrange_pix[0])
+
+    hrefs = np.array([
+        get_url('phot', prod_id) for prod_id in prod_ids
+    ])[ind].tolist()
+
+    out = []
+    for i in range(len(hrefs)):
+        out.append({
+            'xmin': int(xs[i]),
+            'xmax': int(xs[i] + widths[i]),
+            'ymin': yrange_pix[1],
+            'ymax': yrange_pix[0],
+            'href': hrefs[i],
+        })
+
+    with open(output_filename, 'w') as outfile:
+        json.dump(out, outfile, indent=2)
+
+    update_manifest(output_filename, manifest_path)
 
 
 def update_manifest(filename, manifest_path):

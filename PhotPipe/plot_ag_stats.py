@@ -90,13 +90,11 @@ if __name__ == '__main__':
             )
 
             if len(np.unique(night)) > 1:
-                mark_nights(axis, night_boundaries)
-                axis.set_xticks(night_boundaries[0][label_idx])
-                axis.set_xticklabels(night_boundaries[1][label_idx], rotation=90)
-
-                # Make sure to finish rendering the figure before rendering these regions,
-                # including calling `tight_layout`
-                fig.tight_layout()
-                render_regionfile(fig, region_filename, night_boundaries, sub_prod_ids, args.manifest_path)
+                add_click_regions(
+                    axis,
+                    night_boundaries,
+                    region_filename,
+                    sub_prod_ids,
+                    args.manifest_path)
 
         update_manifest(output_filename, args.manifest_path)
