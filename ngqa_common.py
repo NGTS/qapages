@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 import os
+from collections import namedtuple
 import shutil
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -12,8 +13,6 @@ import numpy as np
 import json
 
 __all__ = [
-    'AxisTransform',
-    'FigureTransform',
     'add_click_regions',
     'compute_night_boundaries',
     'copy_manifest_files',
@@ -38,64 +37,6 @@ mpl.rc('axes', grid=True)
 mpl.rc('lines', markersize=3, markeredgewidth=0.0)
 mpl.rc('text', usetex=False)
 mpl.rc('font', family='sans-serif')
-
-
-class AxisTransform(object):
-
-    def __init__(self, canvas, axis):
-        self.canvas = canvas
-        self.axis = axis
-
-    def transform(self, x, y):
-        x = np.atleast_1d(x)
-        y = np.atleast_1d(y)
-
-        points = np.array([x, y]).T
-        x, y = self.axis.transData.transform(points).T
-        _, height = self.canvas.get_width_height()
-        return {
-            'x': x.tolist(),
-            'y': (height - y).tolist(),
-        }
-
-    def transform_pixels(self, *args, **kwargs):
-        results = self.transform(*args, **kwargs)
-        x, y = results['x'], results['y']
-        return {
-            'x': np.round(x).astype(np.int32).tolist(),
-            'y': np.round(y).astype(np.int32).tolist(),
-        }
-
-
-class FigureTransform(object):
-
-    def __init__(self, figure):
-        self.figure = figure
-        assert self.canvas is not None, 'A canvas object must be set'
-        self.width, self.height = self.canvas.get_width_height()
-
-    def axis(self, index):
-        return AxisTransform(self.canvas, self.canvas.figure.axes[index])
-
-    def transform(self, *args, **kwargs):
-        if self.naxes > 1:
-            raise RuntimeError('Figure contains more than one axis. '
-                               'This is unsupported')
-        return self.axis(0).transform(*args, **kwargs)
-
-    def transform_pixels(self, *args, **kwargs):
-        if self.naxes > 1:
-            raise RuntimeError('Figure contains more than one axis. '
-                               'This is unsupported')
-        return self.axis(0).transform_pixels(*args, **kwargs)
-
-    @property
-    def naxes(self):
-        return len(self.figure.axes)
-
-    @property
-    def canvas(self):
-        return self.figure.canvas
 
 
 def add_click_regions(axis, night_boundaries, region_filename, prod_ids, manifest_path):
@@ -278,40 +219,58 @@ def mark_nights(axis, nights):
 def render_regionfile(axis, output_filename, boundaries, prod_ids, manifest_path):
     assert len(boundaries[0]) == len(prod_ids) == len(boundaries[1])
 
-    trans = FigureTransform(figure)
+#     hrefs = np.array([
+#         get_url('phot', prod_id) for prod_id in prod_ids
+#     ]).tolist()
 
-    dummy = np.ones(len(boundaries[0])) * 0.4
-    results = trans.transform_pixels(boundaries[0], dummy)
-
-    xs = np.array(results['x'][:-1])
-    widths = np.diff(results['x'])
-
-    ind = widths >= 1
-    xs, widths = [data[ind] for data in [xs, widths]]
-
-    ylims = figure.get_axes()[0].get_ylim()
-    yrange_pix = trans.transform_pixels([0, 0], ylims)['y']
-    ys = np.ones_like(xs) * yrange_pix[0]
-    heights = np.ones_like(xs) * (yrange_pix[1] - yrange_pix[0])
-
-    hrefs = np.array([
-        get_url('phot', prod_id) for prod_id in prod_ids
-    ])[ind].tolist()
+    region_coordinates = fetch_region_coordinates(axis, boundaries[0])
+    assert len(prod_ids) == len(region_coordinates)
 
     out = []
-    for i in range(len(hrefs)):
-        out.append({
-            'xmin': int(xs[i]),
-            'xmax': int(xs[i] + widths[i]),
-            'ymin': yrange_pix[1],
-            'ymax': yrange_pix[0],
-            'href': hrefs[i],
-        })
+    for prod_id, region in zip(prod_ids, region_coordinates):
+        if region.xmax > (region.xmin + 1):
+            val = region._asdict()
+            val['href'] = get_url('phot', prod_id)
+            out.append(val)
 
     with open(output_filename, 'w') as outfile:
-        json.dump(out, outfile, indent=2)
+        json.dump(out, outfile, indent=2, cls=NumpyJsonEncoder)
 
     update_manifest(output_filename, manifest_path)
+
+
+
+    # trans = FigureTransform(figure)
+
+    # dummy = np.ones(len(boundaries[0])) * 0.4
+    # results = trans.transform_pixels(boundaries[0], dummy)
+
+    # xs = np.array(results['x'][:-1])
+    # widths = np.diff(results['x'])
+
+    # ind = widths >= 1
+    # xs, widths = [data[ind] for data in [xs, widths]]
+
+    # ylims = figure.get_axes()[0].get_ylim()
+    # yrange_pix = trans.transform_pixels([0, 0], ylims)['y']
+    # ys = np.ones_like(xs) * yrange_pix[0]
+    # heights = np.ones_like(xs) * (yrange_pix[1] - yrange_pix[0])
+
+
+    # out = []
+    # for i in range(len(hrefs)):
+    #     out.append({
+    #         'xmin': int(xs[i]),
+    #         'xmax': int(xs[i] + widths[i]),
+    #         'ymin': yrange_pix[1],
+    #         'ymax': yrange_pix[0],
+    #         'href': hrefs[i],
+    #     })
+
+    # with open(output_filename, 'w') as outfile:
+    #     json.dump(out, outfile, indent=2)
+
+    # update_manifest(output_filename, manifest_path)
 
 
 def update_manifest(filename, manifest_path):
@@ -327,3 +286,74 @@ def update_manifest(filename, manifest_path):
 def connect_to_database(db='ngts_pipe'):
     with pymysql.connect(host='ngtsdb', db=db, cursorclass=DictCursor) as cursor:
         yield cursor
+
+
+def fetch_region_coordinates(axis, x_positions):
+    fig = axis.get_figure()
+    canvas = Canvas(fig)
+    trans = AxisTransform(canvas, axis)
+
+    # Append the rightmost axis limit to the positions to include
+    # a click region for the final region
+    x_positions = list(x_positions) + [axis.get_xlim()[1]]
+    return list(trans.x_regions(sorted(x_positions)))
+
+
+Region = namedtuple('Region', ['xmin', 'xmax', 'ymin', 'ymax'])
+
+
+class AxisTransform(object):
+
+    def __init__(self, canvas, axis):
+        self.canvas = canvas
+        self.axis = axis
+
+    def transform(self, x, y):
+        x = np.atleast_1d(x)
+        y = np.atleast_1d(y)
+
+        points = np.array([x, y]).T
+        x, y = self.axis.transData.transform(points).T
+        _, height = self.canvas.get_width_height()
+        return {
+            'x': x.tolist(),
+            'y': (height - y).tolist(),
+        }
+
+    def transform_pixels(self, *args, **kwargs):
+        results = self.transform(*args, **kwargs)
+        x, y = results['x'], results['y']
+        return {
+            'x': np.round(x).astype(np.int32).tolist(),
+            'y': np.round(y).astype(np.int32).tolist(),
+        }
+
+    def x_regions(self, xvals):
+        ylims = self.axis.get_ylim()
+        x_results = self.transform_pixels(xvals, np.ones_like(xvals))['x']
+        y_range = self.transform_pixels([0., 0.], ylims)['y']
+
+        ymin = min(y_range)
+        ymax = max(y_range)
+
+        x_width = np.diff(x_results)
+
+        for x_val, width in zip(x_results[:-1], x_width):
+            region = Region(
+                xmin=x_val,
+                xmax=x_val + width,
+                ymin=ymin,
+                ymax=ymax)
+            yield region
+
+
+class NumpyJsonEncoder(json.JSONEncoder):
+    def default(self, val):
+        if isinstance(val, np.integer):
+            return int(val)
+        elif isinstance(val, np.floating):
+            return float(val)
+        elif isinstance(val, np.ndarray):
+            return val.tolist()
+        else:
+            return super(NumpyJsonEncoder, self).default(val)
