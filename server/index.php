@@ -3,6 +3,17 @@ require_once "global.php";
 require_once "header.html";
 
 require_once 'db.php';
+?>
+
+<div class="row">
+<div class="col-lg-12">
+<div class="todo">
+<p>TODO: search box, filtering, sorting</p>
+</div>
+</div>
+</div>
+
+<?php
 
 $dbh = db_connect();
 $query = "SELECT job_id as prod_id, job_type FROM pipe_job ORDER BY job_id DESC LIMIT 20";

@@ -15,3 +15,7 @@ body {
 iframe {
     border: 0;
 }
+
+.todo {
+    color: red;
+}
