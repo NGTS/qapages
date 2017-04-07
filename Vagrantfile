@@ -14,6 +14,9 @@ Vagrant.configure("2") do |config|
   # boxes at https://atlas.hashicorp.com/search.
   config.vm.box = "debian/jessie64"
 
+  # Disable checking for updates on boot
+  config.vm.box_check_update = false
+
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
   # `vagrant box outdated`. This is not recommended.
