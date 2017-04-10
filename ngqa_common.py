@@ -39,7 +39,7 @@ mpl.rc('text', usetex=False)
 mpl.rc('font', family='sans-serif')
 
 
-def add_click_regions(axis, night_boundaries, region_filename, prod_ids, manifest_path):
+def add_click_regions(axis, night_boundaries, region_filename, prod_ids, manifest_path, no_tight_layout=False):
     ''' Mark regions on the figure, and render a region file to disk.
     '''
     # Only select some of the labels to print
@@ -50,8 +50,8 @@ def add_click_regions(axis, night_boundaries, region_filename, prod_ids, manifes
     axis.set_xticks(night_boundaries[0][label_idx])
     axis.set_xticklabels(night_boundaries[1][label_idx], rotation=90)
 
-    # Make sure to finish rendering the figure before rendering these regions,
-    # including calling `tight_layout`
+    if not no_tight_layout:
+        axis.get_figure().tight_layout()
     render_regionfile(axis, region_filename, night_boundaries, prod_ids, manifest_path)
 
 
@@ -218,10 +218,6 @@ def mark_nights(axis, nights):
 
 def render_regionfile(axis, output_filename, boundaries, prod_ids, manifest_path):
     assert len(boundaries[0]) == len(prod_ids) == len(boundaries[1])
-
-#     hrefs = np.array([
-#         get_url('phot', prod_id) for prod_id in prod_ids
-#     ]).tolist()
 
     region_coordinates = fetch_region_coordinates(axis, boundaries[0])
     assert len(prod_ids) == len(region_coordinates)
