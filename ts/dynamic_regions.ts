@@ -105,7 +105,7 @@ class RegionHandler {
             let region: Region | null = self.region_for_event(regions, click);
 
             if (region != null) {
-                console.log('Changing window url to ' + region.href);
+                window.location.href = region.href;
             }
         });
 
