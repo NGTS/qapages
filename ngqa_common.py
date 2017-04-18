@@ -300,9 +300,14 @@ Region = namedtuple('Region', ['xmin', 'xmax', 'ymin', 'ymax'])
 
 class AxesTransform(object):
 
-    def __init__(self, canvas, axes):
+    def __init__(self, canvas):
         self.canvas = canvas
-        self.axes = axes
+
+    def x_regions(self, xvals, axis):
+        transform = AxisTransform(canvas=self.canvas, axis=axis)
+        for region in transform.x_regions(xvals):
+            yield region
+
 
 
 class AxisTransform(object):
