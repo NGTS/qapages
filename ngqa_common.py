@@ -298,7 +298,7 @@ def fetch_region_coordinates(axis, x_positions):
 Region = namedtuple('Region', ['xmin', 'xmax', 'ymin', 'ymax'])
 
 
-class AxesTransform(object):
+class FigureTransform(object):
 
     def __init__(self, canvas):
         self.canvas = canvas

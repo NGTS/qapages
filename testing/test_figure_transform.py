@@ -3,7 +3,7 @@ import sys
 sys.path.insert(0, os.path.join(
     os.path.dirname(__file__),
     '..'))
-from ngqa_common import AxesTransform, Region
+from ngqa_common import FigureTransform, Region
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as Canvas
 import tempfile
@@ -38,7 +38,7 @@ class TestFigureTransform(TestCase):
 
         self.figure.tight_layout()
         self.canvas = Canvas(self.figure)
-        self.transform = AxesTransform(
+        self.transform = FigureTransform(
             canvas=self.canvas)
 
     def test_setup(self):
