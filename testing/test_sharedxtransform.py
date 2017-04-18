@@ -3,7 +3,7 @@ import sys
 sys.path.insert(0, os.path.join(
     os.path.dirname(__file__),
     '..'))
-from ngqa_common import FigureTransform, Region
+from ngqa_common import SharedXTransform, Region
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as Canvas
 import tempfile
@@ -11,7 +11,7 @@ import pytest
 from unittest import TestCase
 
 
-class TestFigureTransform(TestCase):
+class TestSharedXTransform(TestCase):
 
     def setUp(self):
         # Expected pixel coordinates of the data range,
@@ -38,7 +38,7 @@ class TestFigureTransform(TestCase):
 
         self.figure.tight_layout()
         self.canvas = Canvas(self.figure)
-        self.transform = FigureTransform(
+        self.transform = SharedXTransform(
             canvas=self.canvas)
 
     def test_setup(self):
