@@ -8,10 +8,10 @@
         "allowUnusedLabels": false,
         "strictNullChecks": true,
         "sourceMap": true,
-        "outFile": "./app/main.js"
+        "outFile": "server/js/dynamic_regions.js"
     },
     "files": [
-        "ts/main.ts"
+        "ts/dynamic_regions.ts"
     ]
 }
 
