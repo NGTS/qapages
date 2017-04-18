@@ -303,10 +303,12 @@ class FigureTransform(object):
     def __init__(self, canvas):
         self.canvas = canvas
 
-    def x_regions(self, xvals, axis):
-        transform = AxisTransform(canvas=self.canvas, axis=axis)
-        for region in transform.x_regions(xvals):
-            yield region
+    def x_regions(self, xvals):
+        axes = self.canvas.figure.get_axes()
+        for axis in axes:
+            transform = AxisTransform(canvas=self.canvas, axis=axis)
+            for region in transform.x_regions(xvals):
+                yield region
 
 
 

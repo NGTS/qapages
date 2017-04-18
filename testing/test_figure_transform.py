@@ -50,10 +50,10 @@ class TestFigureTransform(TestCase):
         self.canvas.print_figure(filename)
         assert os.path.isfile(filename)
 
-    def test_single_axis(self):
+    def test_regions(self):
         xvals = [10, 30, 80, 90]
-        regions = list(self.transform.x_regions(xvals, self.axes[0]))
-        assert len(regions) == 3
+        regions = list(self.transform.x_regions(xvals))
+        assert len(regions) == 6
 
     # Helper functions
     @staticmethod
