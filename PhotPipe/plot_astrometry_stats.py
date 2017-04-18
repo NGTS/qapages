@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
         if len(np.unique(night)) > 1:
             add_click_regions(
-                axis,
+                fig,
                 night_boundaries,
                 region_filename,
                 sub_prod_ids,

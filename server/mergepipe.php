@@ -28,13 +28,10 @@ list($previous_jobs, $next_jobs) = fetch_linked_jobs($dbh, $prod_id, 'merge');
         <?php show_image_with_regions($prod_id, 'merge', 'qa_astrometry_stats.png', 'qa_wcsstats_regions.json'); ?>
     </div>
     <div class="col-md-6">
-        <?php show_image_with_regions($prod_id, 'merge', 'qa_autoguider_stats_x.png', 'qa_autoguider_regions_x.json'); ?>
+        <?php show_image_with_regions($prod_id, 'merge', 'qa_autoguider_stats.png', 'qa_autoguider_regions.json'); ?>
     </div>
 </div>
 <div class="row">
-    <div class="col-md-6">
-        <?php show_image_with_regions($prod_id, 'merge', 'qa_autoguider_stats_y.png', 'qa_autoguider_regions_y.json'); ?>
-    </div>
     <div class="col-md-6">
         <?php show_image_with_regions($prod_id, 'merge', 'qa_meta_stats.png', 'qa_metastats_regions.json'); ?>
     </div>

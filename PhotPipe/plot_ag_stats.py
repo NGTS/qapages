@@ -56,25 +56,24 @@ if __name__ == '__main__':
         0, len(night_boundaries[0]) - 1, 10).astype(np.int32)
 
     # Render the image
-    x_output_filename = 'qa_autoguider_stats_x.png'
-    y_output_filename = 'qa_autoguider_stats_y.png'
+    output_filename = 'qa_autoguider_stats.png'
+    region_filename = 'qa_autoguider_regions.json'
 
-    x_regions_filename = 'qa_autoguider_regions_x.json'
-    y_regions_filename = 'qa_autoguider_regions_y.json'
+    with figure_context(output_filename) as fig:
+        ax1 = fig.add_subplot(211)
+        ax2 = fig.add_subplot(212, sharex=ax1)
+        axes = (ax1, ax2)
 
-    iterables = zip(
-        [ag_errx, ag_erry],
-        [x_output_filename, y_output_filename],
-        [x_regions_filename, y_regions_filename],
-        ['x', 'y'],
-        )
+        iterables = zip(
+            [ag_errx, ag_erry],
+            ['x', 'y'],
+            axes,
+            )
 
-    for data, output_filename, region_filename, dimension in iterables:
-        with figure_context(output_filename) as fig:
+        for data, dimension, axis in iterables:
             sc = sigma_clip(data)
             ind = ~sc.mask
 
-            axis = fig.add_subplot(111)
             axis.plot(frames[ind], data[ind], 'k,', alpha=0.3)
             profile_x, profile_med, profile_width = compute_profile(frames[ind], data[ind])
             axis.fill_between(profile_x, profile_med - profile_width / 2., profile_med + profile_width / 2.,
@@ -82,19 +81,26 @@ if __name__ == '__main__':
             axis.plot(profile_x, profile_med, 'r.')
             # axis.grid(True, axis='y')
 
-            axis.set(
-                xlabel='Frame',
-                ylabel='Autoguider error {label} ["]'.format(label=dimension),
-                xlim=(0, frames[-1]),
-                ylim=(-0.75, 0.75),
-            )
+            if axis is axes[0]:
+                axis.set(
+                    ylabel='Autoguider error {label} ["]'.format(label=dimension),
+                    xlim=(0, frames[-1]),
+                    ylim=(-0.75, 0.75),
+                )
+            else:
+                axis.set(
+                    xlabel='Frame',
+                    ylabel='Autoguider error {label} ["]'.format(label=dimension),
+                    xlim=(0, frames[-1]),
+                    ylim=(-0.75, 0.75),
+                )
 
-            if len(np.unique(night)) > 1:
-                add_click_regions(
-                    axis,
-                    night_boundaries,
-                    region_filename,
-                    sub_prod_ids,
-                    args.manifest_path)
+        if len(np.unique(night)) > 1:
+            add_click_regions(
+                fig,
+                night_boundaries,
+                region_filename,
+                sub_prod_ids,
+                args.manifest_path)
 
         update_manifest(output_filename, args.manifest_path)

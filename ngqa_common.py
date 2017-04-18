@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from itertools import cycle
 import os
 from collections import namedtuple
 import shutil
@@ -39,20 +40,23 @@ mpl.rc('text', usetex=False)
 mpl.rc('font', family='sans-serif')
 
 
-def add_click_regions(axis, night_boundaries, region_filename, prod_ids, manifest_path, no_tight_layout=False):
+def add_click_regions(fig, night_boundaries, region_filename, prod_ids, manifest_path, no_tight_layout=False):
     ''' Mark regions on the figure, and render a region file to disk.
     '''
     # Only select some of the labels to print
     label_idx = np.linspace(
         0, len(night_boundaries[0]) - 1, 10).astype(np.int32)
 
-    mark_nights(axis, night_boundaries)
-    axis.set_xticks(night_boundaries[0][label_idx])
-    axis.set_xticklabels(night_boundaries[1][label_idx], rotation=90)
+    axes = fig.get_axes()
+    for axis in axes:
+        mark_nights(axis, night_boundaries)
+        axis.set_xticks(night_boundaries[0][label_idx])
+        axis.set_xticklabels(night_boundaries[1][label_idx], rotation=90)
 
     if not no_tight_layout:
-        axis.get_figure().tight_layout()
-    render_regionfile(axis, region_filename, night_boundaries, prod_ids, manifest_path)
+        fig.tight_layout()
+
+    render_regionfile(fig, region_filename, night_boundaries, prod_ids, manifest_path)
 
 
 def compute_night_boundaries(nights):
@@ -216,14 +220,16 @@ def mark_nights(axis, nights):
         to_shade = not to_shade
 
 
-def render_regionfile(axis, output_filename, boundaries, prod_ids, manifest_path):
+def render_regionfile(fig, output_filename, boundaries, prod_ids, manifest_path):
     assert len(boundaries[0]) == len(prod_ids) == len(boundaries[1])
 
-    region_coordinates = fetch_region_coordinates(axis, boundaries[0])
-    assert len(prod_ids) == len(region_coordinates)
+    region_coordinates = fetch_region_coordinates(fig, boundaries[0])
+
+    # Check that the lengths of the input arrays are exact multiples of each other
+    assert (len(region_coordinates) % len(prod_ids)) == 0
 
     out = []
-    for prod_id, region in zip(prod_ids, region_coordinates):
+    for prod_id, region in zip(cycle(prod_ids), region_coordinates):
         if region.xmax > (region.xmin + 1):
             val = region._asdict()
             val['href'] = get_url('phot', prod_id)
@@ -284,14 +290,14 @@ def connect_to_database(db='ngts_pipe'):
         yield cursor
 
 
-def fetch_region_coordinates(axis, x_positions):
-    fig = axis.get_figure()
+def fetch_region_coordinates(fig, x_positions):
     canvas = Canvas(fig)
-    trans = AxisTransform(canvas, axis)
+    trans = SharedXTransform(canvas)
 
     # Append the rightmost axis limit to the positions to include
     # a click region for the final region
-    x_positions = list(x_positions) + [axis.get_xlim()[1]]
+    axes = fig.get_axes()
+    x_positions = list(x_positions) + [axes[0].get_xlim()[1]]
     return list(trans.x_regions(sorted(x_positions)))
 
 
