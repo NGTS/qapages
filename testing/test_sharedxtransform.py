@@ -3,7 +3,7 @@ import sys
 sys.path.insert(0, os.path.join(
     os.path.dirname(__file__),
     '..'))
-from ngqa_common import SharedXTransform, Region
+from ngqa_common import AxisTransform, SharedXTransform, Region
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as Canvas
 import tempfile
@@ -50,10 +50,65 @@ class TestSharedXTransform(TestCase):
         self.canvas.print_figure(filename)
         assert os.path.isfile(filename)
 
-    def test_regions(self):
+    def test_number_of_regions(self):
         xvals = [10, 30, 80, 90]
         regions = list(self.transform.x_regions(xvals))
         assert len(regions) == 6
+
+    def test_regions(self):
+        xvals = [10, 30, 80, 90]
+        regions = list(self.transform.x_regions(xvals))
+
+        top_transform = AxisTransform(canvas=self.canvas, axis=self.axes[0])
+        bottom_transform = AxisTransform(canvas=self.canvas, axis=self.axes[1])
+
+        # First 3 regions belong to the top axis
+        # Last 3 regions belong to the bottom axis
+
+        top_expected = [
+            Region(
+                xmin=self.x_pixel_range[0],
+                xmax=top_transform.transform_pixels(30, 0.)['x'][0],
+                ymin=self.top_y_pixel_range[0],
+                ymax=self.top_y_pixel_range[1],
+                ),
+            Region(
+                xmin=top_transform.transform_pixels(30, 0)['x'][0],
+                xmax=top_transform.transform_pixels(80, 0.)['x'][0],
+                ymin=self.top_y_pixel_range[0],
+                ymax=self.top_y_pixel_range[1],
+                ),
+            Region(
+                xmin=top_transform.transform_pixels(80, 0)['x'][0],
+                xmax=top_transform.transform_pixels(90, 0.)['x'][0],
+                ymin=self.top_y_pixel_range[0],
+                ymax=self.top_y_pixel_range[1],
+                ),
+        ]
+
+        bottom_expected = [
+            Region(
+                xmin=self.x_pixel_range[0],
+                xmax=top_transform.transform_pixels(30, 0.)['x'][0],
+                ymin=self.bottom_y_pixel_range[0],
+                ymax=self.bottom_y_pixel_range[1],
+                ),
+            Region(
+                xmin=top_transform.transform_pixels(30, 0)['x'][0],
+                xmax=top_transform.transform_pixels(80, 0.)['x'][0],
+                ymin=self.bottom_y_pixel_range[0],
+                ymax=self.bottom_y_pixel_range[1],
+                ),
+            Region(
+                xmin=top_transform.transform_pixels(80, 0)['x'][0],
+                xmax=top_transform.transform_pixels(90, 0.)['x'][0],
+                ymin=self.bottom_y_pixel_range[0],
+                ymax=self.bottom_y_pixel_range[1],
+                ),
+        ]
+
+        for region, expected in zip(regions, top_expected + bottom_expected):
+            self.regions_close(region, expected)
 
     # Helper functions
     @staticmethod
