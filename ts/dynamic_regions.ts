@@ -189,3 +189,12 @@ class RegionHandler {
         this.context().fillText(text, this.canvas.width / 2, 0.1 * this.canvas.height);
     }
 }
+
+$(document).ready(function() {
+    $('canvas.region-plot').each(function(i, elem) {
+        let image_url = $(elem).data('image-url');
+        let regions_url = $(elem).data('region-definition');
+        let handler = new RegionHandler(<HTMLCanvasElement>elem);
+        handler.add_mouse_handlers(image_url, regions_url);
+    });
+});

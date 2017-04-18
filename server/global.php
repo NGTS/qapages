@@ -545,7 +545,7 @@ function show_image_with_regions($prod_id, $job_type, $filename, $region_filenam
     /* Add the current timestamp to prevent caching */
     $region_url = static_path($prod_id, $job_type, $region_filename) . "?_t=" . current_timestamp();
 
-    println("<img title=\"Click region to visit job\" alt=\"Image not available, sorry :(\" class=\"qaplot region-plot\" data-region-definition=\"$region_url\" src=\"$url\"></img>");
+    println("<canvas class=\"qaplot region-plot\" data-region-definition=\"$region_url\" data-image-url=\"$url\">Your browser does not support the canvas element, sorry :(</canvas>");
 }
 
 ?>
