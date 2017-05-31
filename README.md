@@ -16,7 +16,7 @@ Currently development is performed using `vagrant` which means we don't
 have to install php/apache to the developer machine. To get set up:
 
 ```sh
-mkdir static
+tar xvf files.tar.gz  # or mkdir static, if it does not exist
 vagrant up
 yarn install # or npm install
 open http://192.168.33.10/ngtsqa/
