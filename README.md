@@ -16,15 +16,11 @@ Currently development is performed using `vagrant` which means we don't
 have to install php/apache to the developer machine. To get set up:
 
 ```sh
-tar xvf files.tar.gz  # or mkdir static, if it does not exist
-vagrant up
-yarn install # or npm install
-# Compile the typescript to javascript
-./node_modules/.bin/tsc
-# or watch for changes
-./node_modules/.bin/tsc -w
-open http://192.168.33.10/ngtsqa/
+./bin/init
 ```
+
+If this fails, take a look into the script to see what needs to be
+installed.
 
 Alternatively if you have access to an Apache web server and php
 installation, you can add your own host config. See the example in
