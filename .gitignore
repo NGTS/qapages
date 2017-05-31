@@ -6,6 +6,5 @@ workdir/*
 static
 server/test.php
 provisioning/site.retry
-files.tar.gz
 node_modules
 server/js/dynamic_regions.js*
