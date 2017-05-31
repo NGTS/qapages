@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "There are two components to the QA system:",
   "main": "index.js",
+  "repository": "https://github.com/NGTS/qapages.git",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

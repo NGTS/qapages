@@ -1,0 +1,53 @@
+#!/bin/bash
+
+set -eo pipefail
+
+log() {
+    echo "$*" >&2
+}
+
+newline() {
+    echo >&2
+}
+
+die() {
+    log $@
+    exit 1
+}
+
+run() {
+    log "*** Running: $@"
+    $@
+}
+
+main() {
+    log "Installing dependencies"
+    case $OSTYPE in
+        darwin*)
+            run brew cask install vagrant
+            run brew install ansible
+            ;;
+        *)
+            die "Unsupported operating system. Only macOS is supported for now, sorry :("
+            ;;
+    esac
+
+
+    log "Uncompressing test files"
+    run tar xf files.tar.gz
+    newline
+
+    log "Starting the virtual machine"
+    run vagrant up
+    newline
+
+    log "Installing typescript"
+    run npm install
+    newline
+
+    log "Compiling with typescript"
+    run ./node_modules/.bin/tsc
+    newline
+}
+
+main
