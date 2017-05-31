@@ -19,6 +19,10 @@ have to install php/apache to the developer machine. To get set up:
 tar xvf files.tar.gz  # or mkdir static, if it does not exist
 vagrant up
 yarn install # or npm install
+# Compile the typescript to javascript
+./node_modules/.bin/tsc
+# or watch for changes
+./node_modules/.bin/tsc -w
 open http://192.168.33.10/ngtsqa/
 ```
 
