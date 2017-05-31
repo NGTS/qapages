@@ -5,6 +5,27 @@ There are two components to the QA system:
 * the code that generates any qa plots and/or data
 * the server that hosts it
 
+## Deployment
+
+The database connection info is stored in `server/db.php`, so when
+pushing to the webserver, change the connection parameters.
+
+## Development
+
+Currently development is performed using `vagrant` which means we don't
+have to install php/apache to the developer machine. To get set up:
+
+```sh
+mkdir static
+vagrant up
+yarn install # or npm install
+open http://192.168.33.10/ngtsqa/
+```
+
+Alternatively if you have access to an Apache web server and php
+installation, you can add your own host config. See the example in
+`provisioning/templates/001-ngtsqa.conf`.
+
 ## Plot generation
 
 The system goes as such:
@@ -51,3 +72,5 @@ to the current directory (`/local` on the compute nodes).
 
 The master script then copies the png files to the specified location on
 the webserver. The server then takes over serving these pngs.
+
+vim: ft=markdown:tw=72:nowrap
